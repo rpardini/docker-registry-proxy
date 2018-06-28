@@ -2,7 +2,7 @@
 
 ### TL,DR
 
-A caching proxy for Docker; allows centralized management of registries and their authentication; caches images from *any* registry.
+A caching proxy for Docker; allows centralised management of registries and their authentication; caches images from *any* registry.
 
 ### What?
 
@@ -24,13 +24,13 @@ for this to work it requires inserting a root CA certificate into system trusted
 - Env `AUTH_REGISTRIES`: space separated list of `registry:username:password` authentication info. Registry hosts here should be listed in the above ENV as well.
 
 ```bash
-docker run --rm --name docker_caching_proxy -it \
+docker run --rm --name docker_registry_proxy -it \
        -p 0.0.0.0:3128:3128 \  
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache  \
        -v $(pwd)/docker_mirror_certs:/ca  \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.private.registry" \ 
        -e AUTH_REGISTRIES="your.own.registry:username:password another.private.registry:user:pass"  \ 
-       rpardini/docker-caching-proxy:latest
+       rpardini/docker-registry-proxy:latest
 ```
 
 Let's say you did this on host `192.168.66.72`, you can then `curl http://192.168.66.72:3128/ca.crt` and get the proxy CA certificate.
@@ -39,11 +39,11 @@ Let's say you did this on host `192.168.66.72`, you can then `curl http://192.16
 
 On each Docker host that is to use the cache:
 
-- [Configure Docker proxy](https://docs.docker.com/network/proxy/) pointing to the caching server
+- [Configure Docker proxy](https://docs.docker.com/config/daemon/systemd/#httphttps-proxy) pointing to the caching server
 - Add the caching server CA certificate to the list of system trusted roots.
 - Restart `dockerd`
 
-Do it all at once, tested on Ubuntu Xenial:
+Do it all at once, tested on Ubuntu Xenial, which is systemd based:
 
 ```bash
 # Add environment vars pointing Docker to use the proxy
@@ -54,8 +54,8 @@ Environment="HTTPS_PROXY=http://192.168.66.72:3128/"
 EOD
 
 # Get the CA certificate from the proxy and make it a trusted root.
-curl http://192.168.66.72:3128/ca.crt > /usr/share/ca-certificates/docker_caching_proxy.crt
-echo "docker_caching_proxy.crt" >> /etc/ca-certificates.conf
+curl http://192.168.66.72:3128/ca.crt > /usr/share/ca-certificates/docker_registry_proxy.crt
+echo "docker-registry-proxy.crt" >> /etc/ca-certificates.conf
 update-ca-certificates --fresh
 
 # Reload systemd
@@ -81,6 +81,8 @@ Test your own registry caching and authentication the same way; you don't need `
 
 - If you authenticate to a private registry and pull through the proxy, those images will be served to any client that can reach the proxy, even without authentication. *beware*
 - Repeat, this will make your private images very public if you're not careful.
+- **Currently you cannot push images while using the proxy** which is a shame. PRs welcome.
+- Setting this on Linux is relatively easy. On Mac and Windows the CA-certificate part will be very different but should work in principle.
 
 #### Why not use Docker's own registry, which has a mirror feature?
 
