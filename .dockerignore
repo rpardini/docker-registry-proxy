@@ -3,3 +3,5 @@
 .gitignore
 LICENSE
 README.md
+docker_mirror_cache
+docker_mirror_certs
