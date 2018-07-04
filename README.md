@@ -47,6 +47,7 @@ Do it all at once, tested on Ubuntu Xenial, which is systemd based:
 
 ```bash
 # Add environment vars pointing Docker to use the proxy
+mkdir -p /etc/systemd/system/docker.service.d
 cat << EOD > /etc/systemd/system/docker.service.d/http-proxy.conf
 [Service]
 Environment="HTTP_PROXY=http://192.168.66.72:3128/"
@@ -55,7 +56,7 @@ EOD
 
 # Get the CA certificate from the proxy and make it a trusted root.
 curl http://192.168.66.72:3128/ca.crt > /usr/share/ca-certificates/docker_registry_proxy.crt
-echo "docker-registry-proxy.crt" >> /etc/ca-certificates.conf
+echo "docker_registry_proxy.crt" >> /etc/ca-certificates.conf
 update-ca-certificates --fresh
 
 # Reload systemd
