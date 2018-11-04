@@ -58,12 +58,8 @@ NGINX_BIN="nginx"
 if [[ "a${DEBUG}" == "atrue" ]]; then
   # in debug mode, change caching layer to listen on 444, so that mitmproxy can sit in the middle.
   echo "        listen 444 ssl default_server;" > /etc/nginx/caching.layer.listen
-  echo "error_log  /var/log/nginx/error.log debug;" > /etc/nginx/error.log.debug.warn
 
-  # use debug binary
-  NGINX_BIN="nginx-debug"
-
-  echo "Starting in DEBUG MODE."
+  echo "Starting in DEBUG MODE (mitmproxy)."
   echo "Run mitmproxy with reverse pointing to the same certs..."
   mitmweb --no-web-open-browser --web-iface 0.0.0.0 --web-port 8081 \
           --set keep_host_header=true --set ssl_insecure=true \
@@ -73,6 +69,12 @@ if [[ "a${DEBUG}" == "atrue" ]]; then
   echo "Access mitmweb via http://127.0.0.1:8081/ "
 fi
 
+if [[ "a${DEBUG_NGINX}" == "atrue" ]]; then
+  echo "Starting in DEBUG MODE (nginx)."
+  echo "error_log  /var/log/nginx/error.log debug;" > /etc/nginx/error.log.debug.warn
+  # use debug binary
+  NGINX_BIN="nginx-debug"
+fi
 
 echo "Testing nginx config..."
 ${NGINX_BIN} -t

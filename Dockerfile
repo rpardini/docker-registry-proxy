@@ -47,6 +47,8 @@ ENV AUTH_REGISTRIES="some.authenticated.registry:oneuser:onepassword another.reg
 ENV VERIFY_SSL="true"
 # Enable debugging mode; this inserts mitmproxy/mitmweb between the CONNECT proxy and the caching layer
 ENV DEBUG="true"
+# Enable nginx debugging mode; this uses nginx-debug binary and enabled debug logging, which is VERY verbose so separate setting
+ENV DEBUG_NGINX="false"
 
-# Did you want a shell? Sorry. This only does one job; use exec /bin/bash if you wanna inspect stuff
+# Did you want a shell? Sorry, the entrypoint never returns, because it runs nginx itself. Use 'docker exec' if you need to mess around internally.
 ENTRYPOINT ["/entrypoint.sh"]
