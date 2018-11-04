@@ -30,7 +30,7 @@ docker run --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_certs:/ca  \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.private.registry" \ 
        -e AUTH_REGISTRIES="your.own.registry:username:password another.private.registry:user:pass"  \ 
-       rpardini/docker-registry-proxy:latest
+       rpardini/docker-registry-proxy:0.1.0
 ```
 
 Let's say you did this on host `192.168.66.72`, you can then `curl http://192.168.66.72:3128/ca.crt` and get the proxy CA certificate.
