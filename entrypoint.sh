@@ -36,7 +36,7 @@ for ONEREGISTRYIN in ${AUTH_REGISTRIES}; do
 done
 
 echo "" > /etc/nginx/docker.verify.ssl.conf
-if [ "a$VERIFY_SSL" == "atrue" ]; then
+if [[ "a${VERIFY_SSL}" == "atrue" ]]; then
     cat << EOD > /etc/nginx/docker.verify.ssl.conf
     # We actually wanna be secure and avoid mitm attacks.
     # Fitting, since this whole thing is a mitm...
@@ -46,11 +46,38 @@ if [ "a$VERIFY_SSL" == "atrue" ]; then
     proxy_ssl_verify_depth 2;
 EOD
     echo "Upstream SSL certificate verification enabled."
-fi 
+fi
 
+# create default config for the caching layer to listen on 443.
+echo "        listen 443 ssl default_server;" > /etc/nginx/caching.layer.listen
+echo "error_log  /var/log/nginx/error.log warn;" > /etc/nginx/error.log.debug.warn
+
+# normally use non-debug version of nginx
+NGINX_BIN="nginx"
+
+if [[ "a${DEBUG}" == "atrue" ]]; then
+  # in debug mode, change caching layer to listen on 444, so that mitmproxy can sit in the middle.
+  echo "        listen 444 ssl default_server;" > /etc/nginx/caching.layer.listen
+
+  echo "Starting in DEBUG MODE (mitmproxy)."
+  echo "Run mitmproxy with reverse pointing to the same certs..."
+  mitmweb --no-web-open-browser --web-iface 0.0.0.0 --web-port 8081 \
+          --set keep_host_header=true --set ssl_insecure=true \
+          --mode reverse:https://127.0.0.1:444 --listen-host 0.0.0.0 \
+          --listen-port 443 --certs /certs/fullchain_with_key.pem \
+          -w /ca/outfile &
+  echo "Access mitmweb via http://127.0.0.1:8081/ "
+fi
+
+if [[ "a${DEBUG_NGINX}" == "atrue" ]]; then
+  echo "Starting in DEBUG MODE (nginx)."
+  echo "error_log  /var/log/nginx/error.log debug;" > /etc/nginx/error.log.debug.warn
+  # use debug binary
+  NGINX_BIN="nginx-debug"
+fi
 
 echo "Testing nginx config..."
-nginx -t
+${NGINX_BIN} -t
 
 echo "Starting nginx! Have a nice day."
-nginx -g "daemon off;"
+${NGINX_BIN} -g "daemon off;"
