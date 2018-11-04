@@ -34,7 +34,7 @@ if [ -f "$CA_CRT_FILE" ] ; then
 else
     logInfo "No CA was found. Generating one."
     logInfo "*** Please *** make sure to mount /ca as a volume -- if not, everytime this container starts, it will regenerate the CA and nothing will work."
-    
+
     openssl genrsa -des3 -passout pass:foobar -out ${CA_KEY_FILE} 4096
 
     logInfo "generate CA cert with key and self sign it: ${CAID}"
@@ -52,7 +52,7 @@ EOF
 
     [[ ${DEBUG} -gt 0 ]] && logInfo "show the CA cert details"
     [[ ${DEBUG} -gt 0 ]] && openssl x509 -noout -text -in ${CA_CRT_FILE}
-    
+
     echo 01 > ${CA_SRL_FILE}
 
 fi
@@ -116,3 +116,6 @@ openssl x509 -req -days 365 -in web.csr -CA ia.crt -CAkey ia.key -out web.crt -p
 
 logInfo "Concatenating fullchain.pem..."
 cat web.crt ia.crt ${CA_CRT_FILE}  > fullchain.pem
+
+logInfo "Concatenating fullchain_with_key.pem"
+cat fullchain.pem web.key > fullchain_with_key.pem
