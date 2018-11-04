@@ -30,11 +30,11 @@ for this to work it requires inserting a root CA certificate into system trusted
 
 ```bash
 docker run --rm --name docker_registry_proxy -it \
-       -p 0.0.0.0:3128:3128 \  
-       -v $(pwd)/docker_mirror_cache:/docker_mirror_cache  \
-       -v $(pwd)/docker_mirror_certs:/ca  \
+       -p 0.0.0.0:3128:3128 \
+       -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
+       -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
-       -e AUTH_REGISTRIES="auth.docker.io:dockerhub_username:dockerhub_password your.own.registry:username:password"  \ 
+       -e AUTH_REGISTRIES="auth.docker.io:dockerhub_username:dockerhub_password your.own.registry:username:password" \
        rpardini/docker-registry-proxy:0.2.1
 ```
 
