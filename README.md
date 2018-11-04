@@ -20,17 +20,22 @@ for this to work it requires inserting a root CA certificate into system trusted
 - Expose port 3128 to the network
 - Map volume `/docker_mirror_cache` for up to 32gb of cached images from all registries
 - Map volume `/ca`, the proxy will store the CA certificate here across restarts
-- Env `REGISTRIES`: space separated list of registries to cache; no need to include Docker Hub, its already there
-- Env `AUTH_REGISTRIES`: space separated list of `registry:username:password` authentication info. Registry hosts here should be listed in the above ENV as well.
+- Env `REGISTRIES`: space separated list of registries to cache; no need to include Docker Hub, its already there.
+- Env `AUTH_REGISTRIES`: space separated list of `hostname:username:password` authentication info. 
+  - `hostname`s listed here should be listed in the REGISTRIES environment as well, so they can be intercepted.
+  - For Docker Hub authentication, `hostname` should be `auth.docker.io`, username should NOT be an email, use the regular username.
+  - For regular registry auth (HTTP Basic), `hostname` here should be the same... unless your registry uses a different auth server. This should work for quay.io also, but I have no way to test.
+  - For Google Container Registry (GCR), username should be `_json_key` and the password should be the contents of the service account JSON. Check out [GCR docs](https://cloud.google.com/container-registry/docs/advanced-authentication#json_key_file)
+  
 
 ```bash
 docker run --rm --name docker_registry_proxy -it \
        -p 0.0.0.0:3128:3128 \  
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache  \
        -v $(pwd)/docker_mirror_certs:/ca  \
-       -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.private.registry" \ 
-       -e AUTH_REGISTRIES="your.own.registry:username:password another.private.registry:user:pass"  \ 
-       rpardini/docker-registry-proxy:0.1.0
+       -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
+       -e AUTH_REGISTRIES="auth.docker.io:dockerhub_username:dockerhub_password your.own.registry:username:password"  \ 
+       rpardini/docker-registry-proxy:0.2.1
 ```
 
 Let's say you did this on host `192.168.66.72`, you can then `curl http://192.168.66.72:3128/ca.crt` and get the proxy CA certificate.
@@ -102,3 +107,11 @@ When a repository is specified `dockerd` goes directly there, via HTTPS (and als
 
 Yeah. Docker Inc should do it. So should NPM, Inc. Wonder why they don't. 😼
 
+### TODO:
+
+- Allow using multiple credentials for DockerHub; this is possible since the `/token` request includes the wanted repo as a query string parameter.
+- Test and make auth work with quay.io, unfortunately I don't have access to it (_hint, hint, quay_)
+- Make the cache size configurable, today it's fixed at 32gb.
+- Hide the mitmproxy building code under a Docker build ARG.
+- I hope that in the future this can also be used as a "Developer Office" proxy, where many developers on a fast local network
+  share a proxy for bandwidth and speed savings; work is ongoing in this direction.
