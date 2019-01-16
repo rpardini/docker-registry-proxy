@@ -46,7 +46,7 @@ ENV AUTH_REGISTRIES="some.authenticated.registry:oneuser:onepassword another.reg
 # Should we verify upstream's certificates? Default to true.
 ENV VERIFY_SSL="true"
 # Enable debugging mode; this inserts mitmproxy/mitmweb between the CONNECT proxy and the caching layer
-ENV DEBUG="true"
+ENV DEBUG="false"
 # Enable nginx debugging mode; this uses nginx-debug binary and enabled debug logging, which is VERY verbose so separate setting
 ENV DEBUG_NGINX="false"
 
