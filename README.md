@@ -47,9 +47,9 @@ docker run --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
-       -e AUTH_REGISTRIES_DELIMITER=";;;;" \
-       -e AUTH_REGISTRY_DELIMITER="::::" \
-       -e AUTH_REGISTRIES="gcr.io::::_json_key::::$(cat servicekey.json);;;auth.docker.io:::dockerhub_username:::dockerhub_password" \
+       -e AUTH_REGISTRIES_DELIMITER=";;;" \
+       -e AUTH_REGISTRY_DELIMITER=":::" \
+       -e AUTH_REGISTRIES="gcr.io:::_json_key:::$(cat servicekey.json);;;auth.docker.io:::dockerhub_username:::dockerhub_password" \
        rpardini/docker-registry-proxy:0.2.4
 ```
 
