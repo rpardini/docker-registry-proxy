@@ -81,6 +81,13 @@ fi
 echo "        listen 443 ssl default_server;" > /etc/nginx/caching.layer.listen
 echo "error_log  /var/log/nginx/error.log warn;" > /etc/nginx/error.log.debug.warn
 
+# Set Docker Registry cache size, by default, 32 GB ('32g')
+CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
+
+# The cache directory. This can get huge. Better to use a Docker volume pointing here!
+# Set to 32gb which should be enough
+echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE inactive=60d keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/cache_max_size.conf
+
 # normally use non-debug version of nginx
 NGINX_BIN="nginx"
 
