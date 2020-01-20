@@ -49,6 +49,7 @@ ENV VERIFY_SSL="true"
 ENV DEBUG="false"
 # Enable nginx debugging mode; this uses nginx-debug binary and enabled debug logging, which is VERY verbose so separate setting
 ENV DEBUG_NGINX="false"
-
+# Set size for cache directory
+ENV CACHE_SIZE=32g
 # Did you want a shell? Sorry, the entrypoint never returns, because it runs nginx itself. Use 'docker exec' if you need to mess around internally.
 ENTRYPOINT ["/entrypoint.sh"]

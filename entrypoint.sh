@@ -15,6 +15,9 @@ fi
 # The list of SAN (Subject Alternative Names) for which we will create a TLS certificate.
 ALLDOMAINS=""
 
+# Set size for cache directory
+cache_size=${CACHE_SIZE}
+
 # Interceptions map, which are the hosts that will be handled by the caching part.
 # It should list exactly the same hosts we have created certificates for -- if not, Docker will get TLS errors, of course.
 echo -n "" > /etc/nginx/docker.intercept.map
