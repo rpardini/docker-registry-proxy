@@ -2,17 +2,26 @@
 # Source is available at https://github.com/rpardini/nginx-proxy-connect-stable-alpine
 FROM rpardini/nginx-proxy-connect-stable-alpine:nginx-1.14.0-alpine-3.8
 
+# Enable debugging mode; this inserts mitmproxy/mitmweb between the CONNECT proxy and the caching layer
+ARG DEBUG="false"
+
 # Add openssl, bash and ca-certificates, then clean apk cache -- yeah complain all you want.
 # Also added deps for mitmproxy.
-RUN apk add --update openssl bash ca-certificates su-exec coreutils git g++ libffi libffi-dev libstdc++ openssl openssl-dev python3 python3-dev
-RUN LDFLAGS=-L/lib pip3 install mitmproxy
-RUN apk del --purge git g++ libffi-dev openssl-dev python3-dev && rm -rf /var/cache/apk/* && rm -rf ~/.cache/pip
+RUN apk add --update openssl bash ca-certificates coreutils su-exec openssl && \
+    rm -rf /var/cache/apk/* && rm -rf ~/.cache/pip
+
+RUN if [ "$DEBUG" == "true" ]; then \
+    apk add --update git g++ libffi libffi-dev libstdc++ openssl-dev python3 python3-dev && \
+    env LDFLAGS=-L/lib pip3 install mitmproxy && \
+    apk del --purge git g++ libffi-dev openssl-dev python3-dev && \
+    rm -rf /var/cache/apk/* && rm -rf ~/.cache/pip; \
+    fi
 
 # Required for mitmproxy
 ENV LANG=en_US.UTF-8
 
 # Check the installed mitmproxy version
-RUN mitmproxy --version
+RUN if [ "$DEBUG" == "true" ]; then mitmproxy --version; fi
 
 # Create the cache directory and CA directory
 RUN mkdir -p /docker_mirror_cache /ca
@@ -45,10 +54,9 @@ ENV REGISTRIES="k8s.gcr.io gcr.io quay.io"
 ENV AUTH_REGISTRIES="some.authenticated.registry:oneuser:onepassword another.registry:user:password"
 # Should we verify upstream's certificates? Default to true.
 ENV VERIFY_SSL="true"
-# Enable debugging mode; this inserts mitmproxy/mitmweb between the CONNECT proxy and the caching layer
-ENV DEBUG="false"
 # Enable nginx debugging mode; this uses nginx-debug binary and enabled debug logging, which is VERY verbose so separate setting
 ENV DEBUG_NGINX="false"
 
+ENV DEBUG=$DEBUG
 # Did you want a shell? Sorry, the entrypoint never returns, because it runs nginx itself. Use 'docker exec' if you need to mess around internally.
 ENTRYPOINT ["/entrypoint.sh"]
