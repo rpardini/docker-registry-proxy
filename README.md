@@ -35,7 +35,7 @@ docker run --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
        -e AUTH_REGISTRIES="auth.docker.io:dockerhub_username:dockerhub_password your.own.registry:username:password" \
-       rpardini/docker-registry-proxy:0.2.4
+       docker-registry-proxy:latest
 ```
 
 Let's say you did this on host `192.168.66.72`, you can then `curl http://192.168.66.72:3128/ca.crt` and get the proxy CA certificate.
@@ -112,6 +112,5 @@ Yeah. Docker Inc should do it. So should NPM, Inc. Wonder why they don't. 😼
 - Allow using multiple credentials for DockerHub; this is possible since the `/token` request includes the wanted repo as a query string parameter.
 - Test and make auth work with quay.io, unfortunately I don't have access to it (_hint, hint, quay_)
 - Make the cache size configurable, today it's fixed at 32gb.
-- Hide the mitmproxy building code under a Docker build ARG.
 - I hope that in the future this can also be used as a "Developer Office" proxy, where many developers on a fast local network
   share a proxy for bandwidth and speed savings; work is ongoing in this direction.
