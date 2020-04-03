@@ -5,7 +5,7 @@ FROM rpardini/nginx-proxy-connect-stable-alpine:nginx-1.16.1-alpine-3.11
 # Add openssl, bash and ca-certificates, then clean apk cache -- yeah complain all you want.
 # Also added deps for mitmproxy.
 RUN apk add --update openssl bash ca-certificates su-exec coreutils git g++ libffi libffi-dev libstdc++ openssl openssl-dev python3 python3-dev \
- && LDFLAGS=-L/lib pip3 install mitmproxy \
+ && LDFLAGS=-L/lib pip3 install mitmproxy==4.0.4 \
  && apk del --purge git g++ libffi-dev openssl-dev python3-dev \
  && rm -rf /var/cache/apk/* \
  && rm -rf ~/.cache/pip
