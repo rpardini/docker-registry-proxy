@@ -1,6 +1,7 @@
 .idea
 .git
 .gitignore
+*.iml
 LICENSE
 README.md
 docker_mirror_cache
