@@ -34,15 +34,35 @@ export ALLDOMAINS=${ALLDOMAINS:1} # remove the first comma and export
 # Now handle the auth part.
 echo -n "" > /etc/nginx/docker.auth.map
 
-for ONEREGISTRYIN in ${AUTH_REGISTRIES}; do
-    ONEREGISTRY=$(echo -n ${ONEREGISTRYIN} | xargs) # Remove whitespace
-    AUTH_HOST=$(echo -n ${ONEREGISTRY} | cut -d ":" -f 1 | xargs)
-    AUTH_USER=$(echo -n ${ONEREGISTRY} | cut -d ":" -f 2 | xargs)
-    AUTH_PASS=$(echo -n ${ONEREGISTRY} | cut -d ":" -f 3 | xargs)
-    AUTH_BASE64=$(echo -n ${AUTH_USER}:${AUTH_PASS} | base64 | xargs)
-    echo "Adding Auth for registry '${AUTH_HOST}' with user '${AUTH_USER}'."
-    echo "\"${AUTH_HOST}\" \"${AUTH_BASE64}\";" >> /etc/nginx/docker.auth.map
-done
+# Only configure auth registries if the env var contains values
+if [ "$AUTH_REGISTRIES" ]; then
+    # Ref: https://stackoverflow.com/a/47633817/219530
+    AUTH_REGISTRIES_DELIMITER=${AUTH_REGISTRIES_DELIMITER:-" "}
+    s=$AUTH_REGISTRIES$AUTH_REGISTRIES_DELIMITER
+    auth_array=();
+    while [[ $s ]]; do
+        auth_array+=( "${s%%"$AUTH_REGISTRIES_DELIMITER"*}" );
+        s=${s#*"$AUTH_REGISTRIES_DELIMITER"};
+    done
+
+    AUTH_REGISTRY_DELIMITER=${AUTH_REGISTRY_DELIMITER:-":"}
+
+    for ONEREGISTRY in "${auth_array[@]}"; do
+        s=$ONEREGISTRY$AUTH_REGISTRY_DELIMITER
+        registry_array=();
+        while [[ $s ]]; do
+            registry_array+=( "${s%%"$AUTH_REGISTRY_DELIMITER"*}" );
+            s=${s#*"$AUTH_REGISTRY_DELIMITER"};
+        done
+        AUTH_HOST="${registry_array[0]}"
+        AUTH_USER="${registry_array[1]}"
+        AUTH_PASS="${registry_array[2]}"
+        # make base64 not wrap lines: https://superuser.com/a/1225334
+        AUTH_BASE64=$(echo -n "${AUTH_USER}:${AUTH_PASS}" | base64 | tr -d \\n )
+        echo "Adding Auth for registry '${AUTH_HOST}' with user '${AUTH_USER}'."
+        echo "\"${AUTH_HOST}\" \"${AUTH_BASE64}\";" >> /etc/nginx/docker.auth.map
+    done
+fi
 
 echo "" > /etc/nginx/docker.verify.ssl.conf
 if [[ "a${VERIFY_SSL}" == "atrue" ]]; then
