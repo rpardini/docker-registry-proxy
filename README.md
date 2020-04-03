@@ -43,7 +43,7 @@ docker run --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
        -e AUTH_REGISTRIES="auth.docker.io:dockerhub_username:dockerhub_password your.own.registry:username:password" \
-       rpardini/docker-registry-proxy:0.3.0-beta1
+       rpardini/docker-registry-proxy:0.3.0-beta2
 ```
 
 Example with GCR using credentials from a service account from a key file `servicekey.json`:
@@ -57,7 +57,7 @@ docker run --rm --name docker_registry_proxy -it \
        -e AUTH_REGISTRIES_DELIMITER=";;;" \
        -e AUTH_REGISTRY_DELIMITER=":::" \
        -e AUTH_REGISTRIES="gcr.io:::_json_key:::$(cat servicekey.json);;;auth.docker.io:::dockerhub_username:::dockerhub_password" \
-       rpardini/docker-registry-proxy:0.3.0-beta1
+       rpardini/docker-registry-proxy:0.3.0-beta2
 ```
 
 Let's say you did this on host `192.168.66.72`, you can then `curl http://192.168.66.72:3128/ca.crt` and get the proxy CA certificate.
