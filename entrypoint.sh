@@ -57,8 +57,7 @@ if [ "$AUTH_REGISTRIES" ]; then
         AUTH_HOST="${registry_array[0]}"
         AUTH_USER="${registry_array[1]}"
         AUTH_PASS="${registry_array[2]}"
-        # make base64 not wrap lines: https://superuser.com/a/1225334
-        AUTH_BASE64=$(echo -n "${AUTH_USER}:${AUTH_PASS}" | base64 | tr -d \\n )
+        AUTH_BASE64=$(echo -n ${AUTH_USER}:${AUTH_PASS} | base64 -w0 | xargs)
         echo "Adding Auth for registry '${AUTH_HOST}' with user '${AUTH_USER}'."
         echo "\"${AUTH_HOST}\" \"${AUTH_BASE64}\";" >> /etc/nginx/docker.auth.map
     done
