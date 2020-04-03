@@ -14,6 +14,12 @@ Main feature is Docker layer/image caching, even from S3, Google Storage, etc. A
 You configure the Docker clients (_err... Kubernetes Nodes?_) once, and then all configuration is done on the proxy -- 
 for this to work it requires inserting a root CA certificate into system trusted root certs.
 
+### master is unstable/beta
+
+- `master` (and `:latest` Docker tag) is unstable
+- Currently stable version is `0.2.4`, see [0.2.4 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.2.4)
+
+
 ### Usage
 
 - Run the proxy on a host close to the Docker clients
@@ -37,7 +43,7 @@ docker run --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
        -e AUTH_REGISTRIES="auth.docker.io:dockerhub_username:dockerhub_password your.own.registry:username:password" \
-       rpardini/docker-registry-proxy:0.2.4
+       rpardini/docker-registry-proxy:0.3.0-beta1
 ```
 
 Example with GCR using credentials from a service account from a key file `servicekey.json`:
@@ -51,7 +57,7 @@ docker run --rm --name docker_registry_proxy -it \
        -e AUTH_REGISTRIES_DELIMITER=";;;" \
        -e AUTH_REGISTRY_DELIMITER=":::" \
        -e AUTH_REGISTRIES="gcr.io:::_json_key:::$(cat servicekey.json);;;auth.docker.io:::dockerhub_username:::dockerhub_password" \
-       rpardini/docker-registry-proxy:0.2.4
+       rpardini/docker-registry-proxy:0.3.0-beta1
 ```
 
 Let's say you did this on host `192.168.66.72`, you can then `curl http://192.168.66.72:3128/ca.crt` and get the proxy CA certificate.
