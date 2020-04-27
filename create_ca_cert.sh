@@ -25,9 +25,9 @@ CN_WEB=${CN_WEB:0:64}
 mkdir -p /certs /ca
 cd /ca
 
-CA_KEY_FILE=/ca/ca.key
-CA_CRT_FILE=/ca/ca.crt
-CA_SRL_FILE=/ca/ca.srl
+CA_KEY_FILE=${CA_KEY_FILE:-/ca/ca.key}
+CA_CRT_FILE=${CA_CRT_FILE:-/ca/ca.crt}
+CA_SRL_FILE=${CA_SRL_FILE:-/ca/ca.srl}
 
 if [ -f "$CA_CRT_FILE" ] ; then
     logInfo "CA already exists. Good. We'll reuse it."
