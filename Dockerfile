@@ -53,6 +53,12 @@ ADD entrypoint.sh /entrypoint.sh
 ADD create_ca_cert.sh /create_ca_cert.sh
 RUN chmod +x /create_ca_cert.sh /entrypoint.sh
 
+# Allow running nginx with unprivileged user
+RUN chown 1000:1000 /etc/nginx && \
+    mkdir /certs && chown 1000:1000 /certs
+
+USER 1000:1000
+
 # Clients should only use 3128, not anything else.
 EXPOSE 3128
 
