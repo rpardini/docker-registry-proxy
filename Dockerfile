@@ -1,20 +1,28 @@
 # We start from my nginx fork which includes the proxy-connect module from tEngine
 # Source is available at https://github.com/rpardini/nginx-proxy-connect-stable-alpine
-FROM rpardini/nginx-proxy-connect-stable-alpine:nginx-1.16.1-alpine-3.11
+# This is not multiarch yet.
+ARG BASE_IMAGE="rpardini/nginx-proxy-connect-stable-alpine:nginx-1.16.1-alpine-3.11"
+FROM ${BASE_IMAGE}
+
+# If set to 1, enables building mitmproxy, which helps a lot in debugging, but is super heavy to build.
+ARG DEBUG_BUILD="1"
+ENV DO_DEBUG_BUILD="$DEBUG_BUILD"
 
 # Add openssl, bash and ca-certificates, then clean apk cache -- yeah complain all you want.
 # Also added deps for mitmproxy.
-RUN apk add --update openssl bash ca-certificates su-exec coreutils git g++ libffi libffi-dev libstdc++ openssl openssl-dev python3 python3-dev \
+RUN [ "a$DO_DEBUG_BUILD" == "a1" ] && { echo "Debug build ENABLED." \
+ && apk add --update openssl bash ca-certificates su-exec coreutils git g++ libffi libffi-dev libstdc++ openssl openssl-dev python3 python3-dev \
  && LDFLAGS=-L/lib pip3 install mitmproxy==4.0.4 \
  && apk del --purge git g++ libffi-dev openssl-dev python3-dev \
  && rm -rf /var/cache/apk/* \
- && rm -rf ~/.cache/pip
+ && rm -rf ~/.cache/pip \
+ ; } || { echo "Debug build disabled." && apk add --update bash ca-certificates coreutils && rm -rf /var/cache/apk/*; }
 
 # Required for mitmproxy
 ENV LANG=en_US.UTF-8
 
-# Check the installed mitmproxy version
-RUN mitmproxy --version
+# Check the installed mitmproxy version, if built.
+RUN [ "a$DO_DEBUG_BUILD" == "a1" ] && { mitmproxy --version ; } || { echo "Debug build disabled."; }
 
 # Create the cache directory and CA directory
 RUN mkdir -p /docker_mirror_cache /ca
