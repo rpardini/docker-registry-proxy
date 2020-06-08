@@ -16,7 +16,7 @@ RUN [ "a$DO_DEBUG_BUILD" == "a1" ] && { echo "Debug build ENABLED." \
  && apk del --purge git g++ libffi-dev openssl-dev python3-dev \
  && rm -rf /var/cache/apk/* \
  && rm -rf ~/.cache/pip \
- ; } || { echo "Debug build disabled." && apk add --update bash ca-certificates coreutils && rm -rf /var/cache/apk/*; }
+ ; } || { echo "Debug build disabled." && apk add --update bash ca-certificates coreutils openssl && rm -rf /var/cache/apk/*; }
 
 # Required for mitmproxy
 ENV LANG=en_US.UTF-8
