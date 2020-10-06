@@ -1,10 +1,8 @@
-## docker-registry-proxy
-
-### TL,DR
+## TL,DR
 
 A caching proxy for Docker; allows centralised management of (multiple) registries and their authentication; caches images from *any* registry.
 
-### What?
+## What?
 
 Essentially, it's a [man in the middle](https://en.wikipedia.org/wiki/Man-in-the-middle_attack): an intercepting proxy based on `nginx`, to which all docker traffic is directed using the `HTTPS_PROXY` mechanism and injected CA root certificates. 
 
@@ -15,25 +13,25 @@ As a bonus it allows for centralized management of Docker registry credentials, 
 You configure the Docker clients (_err... Kubernetes Nodes?_) once, and then all configuration is done on the proxy -- 
 for this to work it requires inserting a root CA certificate into system trusted root certs.
 
-### master is unstable/beta
+## master is unstable/beta
 
 - `master` (and `:latest` Docker tag) is unstable
 - Currently, stable version is `0.3.0`, see [0.3.0 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.3.0)
 
-### Usage
+## Usage
 
 - Run the proxy on a host close (network-wise: high bandwidth, same-VPC, etc) to the Docker clients
 - Expose port 3128 to the network
 - Map volume `/docker_mirror_cache` for up to `CACHE_MAX_SIZE` (32gb by default) of cached images across all cached registries
 - Map volume `/ca`, the proxy will store the CA certificate here across restarts. **Important** this is security sensitive.
 - Env `CACHE_MAX_SIZE` (default `32g`): set the max size to be used for caching local Docker image layers. Use [Nginx sizes](http://nginx.org/en/docs/syntax.html).
-- Env `REGISTRIES`: space separated list of registries to cache; no need to include Docker Hub, its already there.
+- Env `REGISTRIES`: space separated list of registries to cache; no need to include DockerHub, its already done internally.
 - Env `AUTH_REGISTRIES`: space separated list of `hostname:username:password` authentication info.
   - `hostname`s listed here should be listed in the REGISTRIES environment as well, so they can be intercepted.
 - Env `AUTH_REGISTRIES_DELIMITER` to change the separator between authentication info. By default, a space: "` `". If you use keys that contain spaces (as with Google Cloud Registry), you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=";;;"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:user1:pass1;;;registry2.com:user2:pass2`.
 - Env `AUTH_REGISTRY_DELIMITER` to change the separator between authentication info *parts*. By default, a colon: "`:`". If you use keys that contain single colons, you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=":::"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:::user1:::pass1 registry2.com:::user2:::pass2`.
 
-#### DockerHub specifics
+### DockerHub
 
 For Docker Hub authentication:
 - `hostname` should be `auth.docker.io`
@@ -49,7 +47,7 @@ docker run --rm --name docker_registry_proxy -it \
        rpardini/docker-registry-proxy:0.3.0
 ```
 
-#### Simple registries (HTTP Basic auth)
+### Simple registries (HTTP Basic auth)
 
 For regular registry auth (HTTP Basic), the `hostname` should be the registry itself... unless your registry uses a different auth server.
 
@@ -57,7 +55,7 @@ See the example above for DockerHub, adapt the `your.own.registry` parts (in bot
 
 This should work for quay.io also, but I have no way to test.
 
-#### GitLab specifics
+### GitLab
 
 GitLab may use a different/separate domain to handle the authentication procedure.
 
@@ -77,7 +75,7 @@ docker run  --rm --name docker_registry_proxy -it \
        rpardini/docker-registry-proxy:0.3.0
 ```
 
-#### Google Container Registry (GCR) specifics
+### Google Container Registry (GCR)
 
 For Google Container Registry (GCR), username should be `_json_key` and the password should be the contents of the service account JSON. 
 Check out [GCR docs](https://cloud.google.com/container-registry/docs/advanced-authentication#json_key_file). 
@@ -100,7 +98,7 @@ docker run --rm --name docker_registry_proxy -it \
        rpardini/docker-registry-proxy:0.3.0
 ```
 
-### Configuring the Docker clients / Kubernetes nodes
+## Configuring the Docker clients / Kubernetes nodes
 
 Let's say you setup the proxy on host `192.168.66.72`, you can then `curl http://192.168.66.72:3128/ca.crt` and get the proxy CA certificate.
 
@@ -133,7 +131,7 @@ systemctl daemon-reload
 systemctl restart docker.service
 ```
 
-### Testing
+## Testing
 
 Clear `dockerd` of everything not currently running: `docker system prune -a -f` *beware*
 
@@ -145,7 +143,7 @@ Do the same for `docker pull ubuntu` and rejoice.
 
 Test your own registry caching and authentication the same way; you don't need `docker login`, or `.docker/config.json` anymore.
 
-### Gotchas
+## Gotchas
 
 - If you authenticate to a private registry and pull through the proxy, those images will be served to any client that can reach the proxy, even without authentication. *beware*
 - Repeat, **this will make your private images very public if you're not careful**.
@@ -154,7 +152,7 @@ Test your own registry caching and authentication the same way; you don't need `
   - On Mac and Windows the CA-certificate part will be very different but should work in principle.
   - Please send PRs with instructions for Windows and Mac if you succeed!
 
-#### Why not use Docker's own registry, which has a mirror feature?
+### Why not use Docker's own registry, which has a mirror feature?
 
 Yes, Docker offers [Registry as a pull through cache](https://docs.docker.com/registry/recipes/mirror/), *unfortunately* 
 it only covers the DockerHub case. It won't cache images from `quay.io`, `k8s.gcr.io`, `gcr.io`, or any such, including any private registries.
@@ -167,14 +165,14 @@ with no repository reference (eg, from DockerHub).
 When a repository is specified `dockerd` goes directly there, via HTTPS (and also via HTTP if included in a 
 `--insecure-registry` list), thus completely ignoring the configured mirror.
 
-#### Docker itself should provide this.
+### Docker itself should provide this.
 
 Yeah. Docker Inc should do it. So should NPM, Inc. Wonder why they don't. 😼
 
 ### TODO:
 
-- Allow using multiple credentials for DockerHub; this is possible since the `/token` request includes the wanted repo as a query string parameter.
-- Test and make auth work with quay.io, unfortunately I don't have access to it (_hint, hint, quay_)
-- Hide the mitmproxy building code under a Docker build ARG. [DONE]
-- I hope that in the future this can also be used as a "Developer Office" proxy, where many developers on a fast local network
+- [ ] Allow using multiple credentials for DockerHub; this is possible since the `/token` request includes the wanted repo as a query string parameter.
+- [ ] Test and make auth work with quay.io, unfortunately I don't have access to it (_hint, hint, quay_)
+- [x] Hide the mitmproxy building code under a Docker build ARG.
+- [ ] hope that in the future this can also be used as a "Developer Office" proxy, where many developers on a fast local network
   share a proxy for bandwidth and speed savings; work is ongoing in this direction.
