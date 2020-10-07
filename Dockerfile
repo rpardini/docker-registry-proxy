@@ -1,22 +1,25 @@
 # We start from my nginx fork which includes the proxy-connect module from tEngine
 # Source is available at https://github.com/rpardini/nginx-proxy-connect-stable-alpine
-# This is not multiarch yet.
-ARG BASE_IMAGE="rpardini/nginx-proxy-connect-stable-alpine:nginx-1.18.0-alpine-3.12"
-FROM ${BASE_IMAGE}
+# This is already multi-arch!
+ARG BASE_IMAGE="rpardini/nginx-proxy-connect-stable-alpine:nginx-1.18.0-alpine-3.12.0"
+# Could be "-debug"
+ARG BASE_IMAGE_SUFFIX=""
+FROM ${BASE_IMAGE}${BASE_IMAGE_SUFFIX}
+
+# apk packages that will be present in the final image both debug and release
+RUN apk add --no-cache --update bash ca-certificates-bundle coreutils openssl
 
 # If set to 1, enables building mitmproxy, which helps a lot in debugging, but is super heavy to build.
 ARG DEBUG_BUILD="1"
 ENV DO_DEBUG_BUILD="$DEBUG_BUILD"
 
-# Add openssl, bash and ca-certificates, then clean apk cache -- yeah complain all you want.
-# Also added deps for mitmproxy.
+# Build mitmproxy via pip. This is heavy, takes minutes do build and creates a 90mb+ layer. Oh well.
 RUN [[ "a$DO_DEBUG_BUILD" == "a1" ]] && { echo "Debug build ENABLED." \
- && apk add --update openssl bash ca-certificates su-exec coreutils git g++ libffi libffi-dev libstdc++ openssl openssl-dev python3 python3-dev py3-pip py3-wheel \
+ && apk add --no-cache --update su-exec git g++ libffi libffi-dev libstdc++ openssl-dev python3 python3-dev py3-pip py3-wheel \
  && LDFLAGS=-L/lib pip install mitmproxy==4.0.4 \
- && apk del --purge git g++ libffi-dev openssl-dev python3-dev \
- && rm -rf /var/cache/apk/* \
+ && apk del --purge git g++ libffi-dev openssl-dev python3-dev py3-pip py3-wheel \
  && rm -rf ~/.cache/pip \
- ; } || { echo "Debug build disabled." && apk add --update bash ca-certificates coreutils openssl && rm -rf /var/cache/apk/*; }
+ ; } || { echo "Debug build disabled." ; }
 
 # Required for mitmproxy
 ENV LANG=en_US.UTF-8

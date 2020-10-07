@@ -68,7 +68,7 @@ if [[ "a${VERIFY_SSL}" == "atrue" ]]; then
     cat << EOD > /etc/nginx/docker.verify.ssl.conf
     # We actually wanna be secure and avoid mitm attacks.
     # Fitting, since this whole thing is a mitm...
-    # We'll accept any cert signed by a CA trusted by Mozilla (ca-certificates in alpine)
+    # We'll accept any cert signed by a CA trusted by Mozilla (ca-certificates-bundle in alpine)
     proxy_ssl_verify on;
     proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
     proxy_ssl_verify_depth 2;
@@ -88,9 +88,14 @@ CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
 echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE inactive=60d keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/cache_max_size.conf
 
 # normally use non-debug version of nginx
-NGINX_BIN="nginx"
+NGINX_BIN="/usr/sbin/nginx"
 
 if [[ "a${DEBUG}" == "atrue" ]]; then
+  if [[ ! -f /usr/bin/mitmweb ]]; then
+    echo "To debug, you need the -debug version of this image, eg: :latest-debug"
+    exit 3
+  fi
+
   # in debug mode, change caching layer to listen on 444, so that mitmproxy can sit in the middle.
   echo "        listen 444 ssl default_server;" > /etc/nginx/caching.layer.listen
 
@@ -105,10 +110,15 @@ if [[ "a${DEBUG}" == "atrue" ]]; then
 fi
 
 if [[ "a${DEBUG_NGINX}" == "atrue" ]]; then
+  if [[ ! -f /usr/sbin/nginx-debug ]]; then
+    echo "To debug, you need the -debug version of this image, eg: :latest-debug"
+    exit 4
+  fi
+
   echo "Starting in DEBUG MODE (nginx)."
   echo "error_log  /var/log/nginx/error.log debug;" > /etc/nginx/error.log.debug.warn
   # use debug binary
-  NGINX_BIN="nginx-debug"
+  NGINX_BIN="/usr/sbin/nginx-debug"
 fi
 
 echo "Testing nginx config..."
