@@ -104,8 +104,7 @@ if [[ "a${DEBUG}" == "atrue" ]]; then
   mitmweb --no-web-open-browser --web-iface 0.0.0.0 --web-port 8081 \
           --set keep_host_header=true --set ssl_insecure=true \
           --mode reverse:https://127.0.0.1:444 --listen-host 0.0.0.0 \
-          --listen-port 443 --certs /certs/fullchain_with_key.pem \
-          -w /ca/outfile &
+          --listen-port 443 --certs /certs/fullchain_with_key.pem &> /dev/null &
   echo "Access mitmweb via http://127.0.0.1:8081/ "
 fi
 
