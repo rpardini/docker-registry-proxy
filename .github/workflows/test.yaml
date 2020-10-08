@@ -65,7 +65,8 @@ jobs:
           sleep 10
           docker logs docker_registry_proxy > initial_logs.txt
 
-      - uses: actions/upload-artifact@v2
+      - name: Upload artifact initial_logs
+        uses: actions/upload-artifact@v2
         with:
           name: initial_logs
           path: initial_logs.txt
@@ -132,7 +133,7 @@ jobs:
           echo "Container is up again..."
 
       # This can be quite slow, since Github Actions runner Docker comes preloaded with a lot of images.
-      - name: Initial prune of all unused images from docker cache
+      - name: Initial prune of all unused images from docker cache (slow)
         timeout-minutes: 2
         run: |
           docker image prune --all --force
@@ -147,7 +148,8 @@ jobs:
         run: |
           docker logs docker_registry_proxy > cold_cache.txt
 
-      - uses: actions/upload-artifact@v2
+      - name: Upload artifact cold_cache
+        uses: actions/upload-artifact@v2
         with:
           name: cold_cache
           path: cold_cache.txt
@@ -167,12 +169,9 @@ jobs:
         run: |
           docker logs docker_registry_proxy > warm_cache.txt
 
-      - uses: actions/upload-artifact@v2
+      - name: Upload artifact warm_cache
+        uses: actions/upload-artifact@v2
         with:
           name: warm_cache
           path: warm_cache.txt
 
-      - name: Finally stop proxy instance in docker
-        timeout-minutes: 1
-        run: |
-          timeout 58 docker stop docker_registry_proxy
