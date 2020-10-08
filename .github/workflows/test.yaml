@@ -11,6 +11,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+      - name: Get machine's IPv4 addresses for eth0 and docker0
+        id: ip
+        run: |
+          echo ::set-output name=ETHER::$(sudo ip addr show dev eth0 | egrep "^(\ )+inet\ " | head -1 | tr -s " " | cut -d " " -f 3 | cut -d "/" -f 1)
+          echo ::set-output name=DOCKER::$(sudo ip addr show dev docker0 | egrep "^(\ )+inet\ " | head -1 | tr -s " " | cut -d " " -f 3 | cut -d "/" -f 1)
+
+      - name: Show the IPs via vars
+        run: |
+          echo "Ethernet IPv4 is: ${{ steps.ip.outputs.ETHER }}"
+          echo "Docker IPv4 is: ${{ steps.branch_name.outputs.DOCKER }}"
+
       - name: Checkout
         uses: actions/checkout@v2
 
@@ -40,15 +51,11 @@ jobs:
           push: false
           load: true
           cache-from: type=local,src=/tmp/.buildx-cache/release
-          cache-to: type=local,mode=max,dest=/tmp/.buildx-cache/release
+          # this only reads from the cache
 
       - name: Experiment - elevated systemd action
         run: |
           sudo systemctl status docker.service
-
-      - name: Experiment - get ip addresses of machine
-        run: |
-          sudo ip addr show
 
       - name: Start proxy instance in docker
         run: |
@@ -58,4 +65,94 @@ jobs:
             -v $(pwd)/docker_mirror_certs:/ca \
             sanity-check/docker-registry-proxy:latest
 
+      - name: Wait for container to be up
+        timeout-minutes: 1
+        run: |
+          declare -i IS_UP=0
+          while [[ $IS_UP -lt 1 ]]; do
+            echo "Waiting for docker-mirror to be available at ${{ steps.ip.outputs.ETHER }} ..."
+            curl --silent -I http://${{ steps.ip.outputs.ETHER }}:3128/ && IS_UP=1 || true
+            sleep 1
+          done
+          echo "Container is up..."
 
+      - name: Grab the CA cert from running container via curl
+        run: |
+          curl http://${{ steps.ip.outputs.ETHER }}:3128/ca.crt | sudo tee /usr/share/ca-certificates/docker_registry_proxy.crt
+
+      - name: Stop proxy instance in docker
+        timeout-minutes: 1
+        run: |
+          timeout 58 docker stop docker_registry_proxy
+
+      - name: Refresh system-wide CA store
+        run: |
+          echo "docker_registry_proxy.crt" | sudo tee -a /etc/ca-certificates.conf
+          sudo update-ca-certificates --fresh
+
+      - name: Configure dockerd via systemd to use the proxy
+        run: |
+          sudo mkdir -p /etc/systemd/system/docker.service.d
+          cat << EOD | sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf
+          [Service]
+          Environment="HTTP_PROXY=http://${{ steps.ip.outputs.ETHER }}:3128/"
+          Environment="HTTPS_PROXY=http://${{ steps.ip.outputs.ETHER }}:3128/"
+          EOD
+
+      - name: Reload systemd from disk
+        run: |
+          sudo systemctl daemon-reload
+
+      - name: Restart dockerd via systemd
+        run: |
+          sudo systemctl restart docker.service
+
+      - name: Start proxy instance in docker again
+        run: |
+          docker run -d --rm --name docker_registry_proxy \
+            -p 0.0.0.0:3128:3128 \
+            -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
+            -v $(pwd)/docker_mirror_certs:/ca \
+            sanity-check/docker-registry-proxy:latest
+
+      - name: Wait for container to be up again
+        timeout-minutes: 1
+        run: |
+          declare -i IS_UP=0
+          while [[ $IS_UP -lt 1 ]]; do
+            echo "Waiting for docker-mirror to be available again at ${{ steps.ip.outputs.ETHER }} ..."
+            curl --silent -I http://${{ steps.ip.outputs.ETHER }}:3128/ && IS_UP=1 || true
+            sleep 1
+          done
+          echo "Container is up again..."
+
+      - name: First round of pulls
+        timeout-minutes: 2
+        run: |
+          docker pull alpine:latest
+          docker pull k8s.gcr.io/pause:3.3
+
+      - name: Complete docker purge
+        timeout-minutes: 2
+        run: |
+          docker system prune -a -f
+
+      - name: Second round of pulls
+        timeout-minutes: 2
+        run: |
+          docker pull alpine:latest
+          docker pull k8s.gcr.io/pause:3.3
+
+      - name: Get the docker logs for the container into a file
+        run: |
+          docker logs docker_registry_proxy > logs.txt
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: logs
+          path: logs.txt
+
+      - name: Finally stop proxy instance in docker
+        timeout-minutes: 1
+        run: |
+          timeout 58 docker stop docker_registry_proxy
