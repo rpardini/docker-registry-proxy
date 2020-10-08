@@ -16,7 +16,8 @@ for this to work it requires inserting a root CA certificate into system trusted
 ## master is unstable/beta
 
 - `master` (and `:latest` Docker tag) is unstable
-- Currently, stable version is `0.3.0`, see [0.3.0 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.3.0)
+- Test version is `0.4.0-pre1`, see [0.4.0-pre1 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.4.0-pre1) - this image is multi-arch amd64/arm64
+- Stable/production version is `0.3.0`, see [0.3.0 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.3.0) (amd64 only)
 
 ## Usage
 
@@ -31,7 +32,16 @@ for this to work it requires inserting a root CA certificate into system trusted
 - Env `AUTH_REGISTRIES_DELIMITER` to change the separator between authentication info. By default, a space: "` `". If you use keys that contain spaces (as with Google Cloud Registry), you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=";;;"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:user1:pass1;;;registry2.com:user2:pass2`.
 - Env `AUTH_REGISTRY_DELIMITER` to change the separator between authentication info *parts*. By default, a colon: "`:`". If you use keys that contain single colons, you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=":::"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:::user1:::pass1 registry2.com:::user2:::pass2`.
 
-### DockerHub
+### Simple (no auth, all cache)
+```bash
+docker run --rm --name docker_registry_proxy -it \
+       -p 0.0.0.0:3128:3128 \
+       -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
+       -v $(pwd)/docker_mirror_certs:/ca \
+       rpardini/docker-registry-proxy:0.4.0-pre1
+```
+
+### DockerHub auth
 
 For Docker Hub authentication:
 - `hostname` should be `auth.docker.io`
@@ -44,10 +54,10 @@ docker run --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
        -e AUTH_REGISTRIES="auth.docker.io:dockerhub_username:dockerhub_password your.own.registry:username:password" \
-       rpardini/docker-registry-proxy:0.3.0
+       rpardini/docker-registry-proxy:0.4.0-pre1
 ```
 
-### Simple registries (HTTP Basic auth)
+### Simple registries auth (HTTP Basic auth)
 
 For regular registry auth (HTTP Basic), the `hostname` should be the registry itself... unless your registry uses a different auth server.
 
@@ -55,7 +65,7 @@ See the example above for DockerHub, adapt the `your.own.registry` parts (in bot
 
 This should work for quay.io also, but I have no way to test.
 
-### GitLab
+### GitLab auth
 
 GitLab may use a different/separate domain to handle the authentication procedure.
 
@@ -72,10 +82,10 @@ docker run  --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="reg.example.com git.example.com" \
        -e AUTH_REGISTRIES="git.example.com:USER:PASSWORD" \
-       rpardini/docker-registry-proxy:0.3.0
+       rpardini/docker-registry-proxy:0.4.0-pre1
 ```
 
-### Google Container Registry (GCR)
+### Google Container Registry (GCR) auth
 
 For Google Container Registry (GCR), username should be `_json_key` and the password should be the contents of the service account JSON. 
 Check out [GCR docs](https://cloud.google.com/container-registry/docs/advanced-authentication#json_key_file). 
@@ -95,7 +105,7 @@ docker run --rm --name docker_registry_proxy -it \
        -e AUTH_REGISTRIES_DELIMITER=";;;" \
        -e AUTH_REGISTRY_DELIMITER=":::" \
        -e AUTH_REGISTRIES="gcr.io:::_json_key:::$(cat servicekey.json);;;auth.docker.io:::dockerhub_username:::dockerhub_password" \
-       rpardini/docker-registry-proxy:0.3.0
+       rpardini/docker-registry-proxy:0.4.0-pre1
 ```
 
 ## Configuring the Docker clients / Kubernetes nodes
@@ -108,7 +118,7 @@ On each Docker host that is to use the cache:
 - Add the caching server CA certificate to the list of system trusted roots.
 - Restart `dockerd`
 
-Do it all at once, tested on Ubuntu Xenial, which is systemd based:
+Do it all at once, tested on Ubuntu Xenial, Bionic, and Focal, all systemd based:
 
 ```bash
 # Add environment vars pointing Docker to use the proxy
@@ -143,6 +153,23 @@ Do the same for `docker pull ubuntu` and rejoice.
 
 Test your own registry caching and authentication the same way; you don't need `docker login`, or `.docker/config.json` anymore.
 
+## Developing/Debugging
+
+Since `0.4.0` there is a separate `-debug` version of the image, which includes `nginx-debug`, and has `mitmproxy` (actually `mitmweb`) inserted after the CONNECT proxy but before the caching logic.
+This allows very in-depth debugging, but tends to be unstable with huge layers. Use sparingly, and definitely not in production.
+
+```bash
+docker run --rm --name docker_registry_proxy -it 
+       -e DEBUG_NGINX=true -e DEBUG=true -p 0.0.0.0:8081:8081 \
+       -p 0.0.0.0:3128:3128 \
+       -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
+       -v $(pwd)/docker_mirror_certs:/ca \
+       rpardini/docker-registry-proxy:0.4.0-pre1-debug
+```
+
+- `DEBUG=true` enables the mitmweb proxy, accessible on port 8081
+- `DEBUG_NGINX=true` enables nginx-debug and debug logging, which probably is too much.
+
 ## Gotchas
 
 - If you authenticate to a private registry and pull through the proxy, those images will be served to any client that can reach the proxy, even without authentication. *beware*
@@ -171,8 +198,6 @@ Yeah. Docker Inc should do it. So should NPM, Inc. Wonder why they don't. 😼
 
 ### TODO:
 
-- [ ] Allow using multiple credentials for DockerHub; this is possible since the `/token` request includes the wanted repo as a query string parameter.
 - [ ] Test and make auth work with quay.io, unfortunately I don't have access to it (_hint, hint, quay_)
 - [x] Hide the mitmproxy building code under a Docker build ARG.
-- [ ] hope that in the future this can also be used as a "Developer Office" proxy, where many developers on a fast local network
-  share a proxy for bandwidth and speed savings; work is ongoing in this direction.
+- [ ] "Developer Office" proxy scenario, where many developers on a fast LAN share a proxy for bandwidth and speed savings (already works for pulls, but messes up pushes, which developers tend to use a lot)
