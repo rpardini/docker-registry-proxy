@@ -11,16 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-      - name: Get machine's IPv4 addresses for eth0 and docker0
+      - name: Get machine's first IPv4 address for eth0
         id: ip
         run: |
           echo ::set-output name=ETHER::$(sudo ip addr show dev eth0 | egrep "^(\ )+inet\ " | head -1 | tr -s " " | cut -d " " -f 3 | cut -d "/" -f 1)
-          echo ::set-output name=DOCKER::$(sudo ip addr show dev docker0 | egrep "^(\ )+inet\ " | head -1 | tr -s " " | cut -d " " -f 3 | cut -d "/" -f 1)
 
       - name: Show the IPs via vars
         run: |
           echo "Ethernet IPv4 is: ${{ steps.ip.outputs.ETHER }}"
-          echo "Docker IPv4 is: ${{ steps.branch_name.outputs.DOCKER }}"
 
       - name: Checkout
         uses: actions/checkout@v2
@@ -53,10 +51,6 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache/release
           # this only reads from the cache
 
-      - name: Experiment - elevated systemd action
-        run: |
-          sudo systemctl status docker.service
-
       - name: Start proxy instance in docker
         run: |
           docker run -d --rm --name docker_registry_proxy \
@@ -64,6 +58,17 @@ jobs:
             -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
             -v $(pwd)/docker_mirror_certs:/ca \
             sanity-check/docker-registry-proxy:latest
+
+      - name: Get the initial logs for the container into a file after 10s
+        run: |
+          echo "Sleeping 10s..."
+          sleep 10
+          docker logs docker_registry_proxy > initial_logs.txt
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: initial_logs
+          path: initial_logs.txt
 
       - name: Wait for container to be up
         timeout-minutes: 1
@@ -126,31 +131,46 @@ jobs:
           done
           echo "Container is up again..."
 
+      # This can be quite slow, since Github Actions runner Docker comes preloaded with a lot of images.
+      - name: Initial prune of all unused images from docker cache
+        timeout-minutes: 2
+        run: |
+          docker image prune --all --force
+
       - name: First round of pulls
         timeout-minutes: 2
         run: |
-          docker pull alpine:latest
+          docker pull alpine:3.6
           docker pull k8s.gcr.io/pause:3.3
 
-      - name: Complete docker purge
-        timeout-minutes: 2
+      - name: Get the cold cache logs for the container into a file
         run: |
-          docker system prune -a -f
+          docker logs docker_registry_proxy > cold_cache.txt
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: cold_cache
+          path: cold_cache.txt
+
+      - name: prune all unused images from docker cache again
+        timeout-minutes: 1
+        run: |
+          docker image prune --all --force
 
       - name: Second round of pulls
         timeout-minutes: 2
         run: |
-          docker pull alpine:latest
+          docker pull alpine:3.6
           docker pull k8s.gcr.io/pause:3.3
 
-      - name: Get the docker logs for the container into a file
+      - name: Get the warm cache docker logs for the container into a file
         run: |
-          docker logs docker_registry_proxy > logs.txt
+          docker logs docker_registry_proxy > warm_cache.txt
 
       - uses: actions/upload-artifact@v2
         with:
-          name: logs
-          path: logs.txt
+          name: warm_cache
+          path: warm_cache.txt
 
       - name: Finally stop proxy instance in docker
         timeout-minutes: 1
