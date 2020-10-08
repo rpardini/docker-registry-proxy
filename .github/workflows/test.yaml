@@ -1,0 +1,61 @@
+name: test
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  sanity-check:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # We use buildx instead of regular build so we can take advantage of Docker layer cache via Github Actions' cache
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+
+      # Setup the Github Actions cache.
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildxarch-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildxarch-
+
+      - name: Build amd64 release image locally to Docker
+        uses: docker/build-push-action@v2
+        with:
+          build-args: DEBUG_BUILD=0,BASE_IMAGE_SUFFIX=
+          builder: ${{ steps.buildx.outputs.name }}
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          tags: sanity-check/docker-registry-proxy:latest
+          push: false
+          load: true
+          cache-from: type=local,src=/tmp/.buildx-cache/release
+          cache-to: type=local,mode=max,dest=/tmp/.buildx-cache/release
+
+      - name: Experiment - elevated systemd action
+        run: |
+          sudo systemctl status docker.service
+
+      - name: Experiment - get ip addresses of machine
+        run: |
+          sudo ip addr show
+
+      - name: Start proxy instance in docker
+        run: |
+          docker run -d --rm --name docker_registry_proxy \
+            -p 0.0.0.0:3128:3128 \
+            -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
+            -v $(pwd)/docker_mirror_certs:/ca \
+            sanity-check/docker-registry-proxy:latest
+
+
