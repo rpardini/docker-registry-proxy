@@ -159,6 +159,10 @@ jobs:
         run: |
           docker image prune --all --force
 
+      - name: sleep 2s to allow cache to stale a bit
+        run: |
+          sleep 2
+
       - name: Second round of pulls
         timeout-minutes: 2
         run: |
