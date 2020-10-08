@@ -13,9 +13,9 @@ As a bonus it allows for centralized management of Docker registry credentials, 
 You configure the Docker clients (_err... Kubernetes Nodes?_) once, and then all configuration is done on the proxy -- 
 for this to work it requires inserting a root CA certificate into system trusted root certs.
 
-## master is unstable/beta
+## master/:latest is unstable/beta
 
-- `master` (and `:latest` Docker tag) is unstable
+- `:latest` and `:latest-debug` Docker tag is unstable, built from master, and amd64-only
 - Test version is `0.4.0-pre1`, see [0.4.0-pre1 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.4.0-pre1) - this image is multi-arch amd64/arm64
 - Stable/production version is `0.3.0`, see [0.3.0 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.3.0) (amd64 only)
 
