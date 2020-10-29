@@ -48,8 +48,10 @@ RUN chmod +x /create_ca_cert.sh /entrypoint.sh
 # Clients should only use 3128, not anything else.
 EXPOSE 3128
 
-# In debug mode, 8081 exposes the mitmweb interface.
+# In debug mode, 8081 exposes the mitmweb interface (for incoming requests from Docker clients)
 EXPOSE 8081
+# In debug-hub mode, 8082 exposes the mitmweb interface (for outgoing requests to DockerHub)
+EXPOSE 8082
 
 ## Default envs.
 # A space delimited list of registries we should proxy and cache; this is in addition to the central DockerHub.
@@ -60,6 +62,8 @@ ENV AUTH_REGISTRIES="some.authenticated.registry:oneuser:onepassword another.reg
 ENV VERIFY_SSL="true"
 # Enable debugging mode; this inserts mitmproxy/mitmweb between the CONNECT proxy and the caching layer
 ENV DEBUG="false"
+# Enable debugging mode; this inserts mitmproxy/mitmweb between the caching layer and DockerHub's registry
+ENV DEBUG_HUB="false"
 # Enable nginx debugging mode; this uses nginx-debug binary and enabled debug logging, which is VERY verbose so separate setting
 ENV DEBUG_NGINX="false"
 

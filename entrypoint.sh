@@ -31,6 +31,10 @@ done
 export ALLDOMAINS=${ALLDOMAINS:1} # remove the first comma and export
 /create_ca_cert.sh # This uses ALLDOMAINS to generate the certificates.
 
+# Target host interception. Empty by default. Used to intercept outgoing requests
+# from the proxy to the registries.
+echo -n "" > /etc/nginx/docker.targetHost.map
+
 # Now handle the auth part.
 echo -n "" > /etc/nginx/docker.auth.map
 
@@ -63,19 +67,6 @@ if [ "$AUTH_REGISTRIES" ]; then
     done
 fi
 
-echo "" > /etc/nginx/docker.verify.ssl.conf
-if [[ "a${VERIFY_SSL}" == "atrue" ]]; then
-    cat << EOD > /etc/nginx/docker.verify.ssl.conf
-    # We actually wanna be secure and avoid mitm attacks.
-    # Fitting, since this whole thing is a mitm...
-    # We'll accept any cert signed by a CA trusted by Mozilla (ca-certificates-bundle in alpine)
-    proxy_ssl_verify on;
-    proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
-    proxy_ssl_verify_depth 2;
-EOD
-    echo "Upstream SSL certificate verification enabled."
-fi
-
 # create default config for the caching layer to listen on 443.
 echo "        listen 443 ssl default_server;" > /etc/nginx/caching.layer.listen
 echo "error_log  /var/log/nginx/error.log warn;" > /etc/nginx/error.log.debug.warn
@@ -99,13 +90,35 @@ if [[ "a${DEBUG}" == "atrue" ]]; then
   # in debug mode, change caching layer to listen on 444, so that mitmproxy can sit in the middle.
   echo "        listen 444 ssl default_server;" > /etc/nginx/caching.layer.listen
 
-  echo "Starting in DEBUG MODE (mitmproxy)."
+  echo "Starting in DEBUG MODE (mitmproxy)."  >&2
   echo "Run mitmproxy with reverse pointing to the same certs..."
   mitmweb --no-web-open-browser --web-iface 0.0.0.0 --web-port 8081 \
           --set keep_host_header=true --set ssl_insecure=true \
           --mode reverse:https://127.0.0.1:444 --listen-host 0.0.0.0 \
           --listen-port 443 --certs /certs/fullchain_with_key.pem &> /dev/null &
   echo "Access mitmweb via http://127.0.0.1:8081/ "
+fi
+
+if [[ "a${DEBUG_HUB}" == "atrue" ]]; then
+  if [[ ! -f /usr/bin/mitmweb ]]; then
+    echo "To debug, you need the -debug version of this image, eg: :latest-debug"
+    exit 3
+  fi
+
+  # in debug hub mode, we remap targetHost to point to mitmproxy below
+  echo "\"registry-1.docker.io\" \"127.0.0.1:445\";" > /etc/nginx/docker.targetHost.map
+
+  echo "Debugging outgoing DockerHub connections via mitmproxy on 8082."  >&2
+  # this one has keep_host_header=false so we don't need to modify nginx config
+  mitmweb --no-web-open-browser --web-iface 0.0.0.0 --web-port 8082 \
+          --set keep_host_header=false --set ssl_insecure=true \
+          --mode reverse:https://registry-1.docker.io --listen-host 0.0.0.0 \
+          --listen-port 445 --certs /certs/fullchain_with_key.pem &> /dev/null &
+
+  echo "Warning, DockerHub outgoing debugging disables upstream SSL verification for all upstreams."  >&2
+  VERIFY_SSL=false
+
+  echo "Access mitmweb for outgoing DockerHub requests via http://127.0.0.1:8082/ "
 fi
 
 if [[ "a${DEBUG_NGINX}" == "atrue" ]]; then
@@ -119,6 +132,23 @@ if [[ "a${DEBUG_NGINX}" == "atrue" ]]; then
   # use debug binary
   NGINX_BIN="/usr/sbin/nginx-debug"
 fi
+
+# Upstream SSL verification.
+echo "" > /etc/nginx/docker.verify.ssl.conf
+if [[ "a${VERIFY_SSL}" == "atrue" ]]; then
+    cat << EOD > /etc/nginx/docker.verify.ssl.conf
+    # We actually wanna be secure and avoid mitm attacks.
+    # Fitting, since this whole thing is a mitm...
+    # We'll accept any cert signed by a CA trusted by Mozilla (ca-certificates-bundle in alpine)
+    proxy_ssl_verify on;
+    proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+    proxy_ssl_verify_depth 2;
+EOD
+    echo "Upstream SSL certificate verification enabled."
+else
+    echo "Upstream SSL certificate verification is DISABLED."
+fi
+
 
 echo "Testing nginx config..."
 ${NGINX_BIN} -t
