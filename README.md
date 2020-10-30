@@ -7,6 +7,47 @@
 
 A caching proxy for Docker; allows centralised management of (multiple) registries and their authentication; caches images from *any* registry.
 
+### NEW: avoiding DockerHub Pull Rate Limits with Caching
+
+Starting November 2nd, 2020, DockerHub will 
+[supposedly](https://www.docker.com/blog/docker-hub-image-retention-policy-delayed-and-subscription-updates/) 
+[start](https://www.docker.com/blog/scaling-docker-to-serve-millions-more-developers-network-egress/)
+[rate-limiting pulls](https://docs.docker.com/docker-hub/download-rate-limit/), 
+also known as the _Docker Apocalypse_. 
+The main symptom is `Error response from daemon: toomanyrequests: Too Many Requests. Please see https://docs.docker.com/docker-hub/download-rate-limit/` during pulls.
+Many unknowing Kubernetes clusters will hit the limit, and struggle to configure `imagePullSecrets` and `imagePullPolicy`.
+
+Since version `0.6.0`, this proxy can be configured with the env var `ENABLE_MANIFEST_CACHE=true` which provides 
+configurable caching of the manifest requests that DockerHub throttles. You can then fine-tune other parameters to your needs.
+Together with the possibility to centrally inject authentication (since 0.3x), this is probably one of the best ways to bring relief to your distressed cluster, while at the same time saving lots of bandwidth and time. 
+
+Note: enabling manifest caching, in its default config, effectively makes some tags **immutable**. Use with care. The configuration ENVs are explained in the [Dockerfile](./Dockerfile), relevant parts included below.
+
+```dockerfile
+# Manifest caching tiers. Disabled by default, to mimick 0.4/0.5 behaviour.
+# Setting it to true enables the processing of the ENVs below.
+# Once enabled, it is valid for all registries, not only DockerHub.
+# The envs *_REGEX represent a regex fragment, check entrypoint.sh to understand how they're used (nginx ~ location, PCRE syntax).
+ENV ENABLE_MANIFEST_CACHE="false"
+
+# 'Primary' tier defaults to 10m cache for frequently used/abused tags.
+# - People publishing to production via :latest (argh) will want to include that in the regex
+# - Heavy pullers who are being ratelimited but don't mind getting outdated manifests should (also) increase the cache time here
+ENV MANIFEST_CACHE_PRIMARY_REGEX="(stable|nightly|production|test)"
+ENV MANIFEST_CACHE_PRIMARY_TIME="10m"
+
+# 'Secondary' tier defaults any tag that has 3 digits or dots, in the hopes of matching most explicitly-versioned tags.
+# It caches for 60d, which is also the cache time for the large binary blobs to which the manifests refer.
+# That makes them effectively immutable. Make sure you're not affected; tighten this regex or widen the primary tier.
+ENV MANIFEST_CACHE_SECONDARY_REGEX="(.*)(\d|\.)+(.*)(\d|\.)+(.*)(\d|\.)+"
+ENV MANIFEST_CACHE_SECONDARY_TIME="60d"
+
+# The default cache duration for manifests that don't match either the primary or secondary tiers above.
+# In the default config, :latest and other frequently-used tags will get this value.
+ENV MANIFEST_CACHE_DEFAULT_TIME="1h"
+```
+
+
 ## What?
 
 Essentially, it's a [man in the middle](https://en.wikipedia.org/wiki/Man-in-the-middle_attack): an intercepting proxy based on `nginx`, to which all docker traffic is directed using the `HTTPS_PROXY` mechanism and injected CA root certificates. 
@@ -14,7 +55,7 @@ Essentially, it's a [man in the middle](https://en.wikipedia.org/wiki/Man-in-the
 The main feature is Docker layer/image caching, including layers served from S3, Google Storage, etc. 
 
 As a bonus it allows for centralized management of Docker registry credentials, which can in itself be the main feature, eg in Kubernetes environments.
- 
+
 You configure the Docker clients (_err... Kubernetes Nodes?_) once, and then all configuration is done on the proxy -- 
 for this to work it requires inserting a root CA certificate into system trusted root certs.
 
