@@ -78,6 +78,49 @@ CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
 # Set to 32gb which should be enough
 echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE inactive=60d keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/cache_max_size.conf
 
+# Manifest caching configuration. We generate config based on the environment vars.
+echo -n "" >/etc/nginx/nginx.manifest.caching.config.conf
+
+[[ "a${ENABLE_MANIFEST_CACHE}" == "atrue" ]] && [[ "a${MANIFEST_CACHE_PRIMARY_REGEX}" != "a" ]] && cat <<EOD >>/etc/nginx/nginx.manifest.caching.config.conf
+    # First tier caching of manifests; configure via MANIFEST_CACHE_PRIMARY_REGEX and MANIFEST_CACHE_PRIMARY_TIME
+    location ~ ^/v2/(.*)/manifests/${MANIFEST_CACHE_PRIMARY_REGEX} {
+        set \$docker_proxy_request_type "manifest-primary";
+        proxy_cache_valid ${MANIFEST_CACHE_PRIMARY_TIME};
+        include "/etc/nginx/nginx.manifest.stale.conf";
+    }
+EOD
+
+[[ "a${ENABLE_MANIFEST_CACHE}" == "atrue" ]] && [[ "a${MANIFEST_CACHE_SECONDARY_REGEX}" != "a" ]] && cat <<EOD >>/etc/nginx/nginx.manifest.caching.config.conf
+    # Secondary tier caching of manifests; configure via MANIFEST_CACHE_SECONDARY_REGEX and MANIFEST_CACHE_SECONDARY_TIME
+    location ~ ^/v2/(.*)/manifests/${MANIFEST_CACHE_SECONDARY_REGEX} {
+        set \$docker_proxy_request_type "manifest-secondary";
+        proxy_cache_valid ${MANIFEST_CACHE_SECONDARY_TIME};
+        include "/etc/nginx/nginx.manifest.stale.conf";
+    }
+EOD
+
+[[ "a${ENABLE_MANIFEST_CACHE}" == "atrue" ]] && cat <<EOD >>/etc/nginx/nginx.manifest.caching.config.conf
+    # Default tier caching for manifests. Caches for ${MANIFEST_CACHE_DEFAULT_TIME} (from MANIFEST_CACHE_DEFAULT_TIME)
+    location ~ ^/v2/(.*)/manifests/ {
+        set \$docker_proxy_request_type "manifest-default";
+        proxy_cache_valid ${MANIFEST_CACHE_DEFAULT_TIME};
+        include "/etc/nginx/nginx.manifest.stale.conf";
+    }
+EOD
+
+[[ "a${ENABLE_MANIFEST_CACHE}" != "atrue" ]] && cat <<EOD >>/etc/nginx/nginx.manifest.caching.config.conf
+    # Manifest caching is disabled. Enable it with ENABLE_MANIFEST_CACHE=true
+    location ~ ^/v2/(.*)/manifests/ {
+        set \$docker_proxy_request_type "manifest-default-disabled";
+        proxy_cache_valid 0s;
+        include "/etc/nginx/nginx.manifest.stale.conf";
+    }
+EOD
+
+echo "Manifest caching config: ---"
+cat /etc/nginx/nginx.manifest.caching.config.conf
+echo "---"
+
 # normally use non-debug version of nginx
 NGINX_BIN="/usr/sbin/nginx"
 
