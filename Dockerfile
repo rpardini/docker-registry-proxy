@@ -42,6 +42,8 @@ VOLUME /ca
 
 # Add our configuration
 ADD nginx.conf /etc/nginx/nginx.conf
+ADD nginx.manifest.common.conf /etc/nginx/nginx.manifest.common.conf
+ADD nginx.manifest.stale.conf /etc/nginx/nginx.manifest.stale.conf
 
 # Add our very hackish entrypoint and ca-building scripts, make them executable
 ADD entrypoint.sh /entrypoint.sh
@@ -69,6 +71,28 @@ ENV DEBUG="false"
 ENV DEBUG_HUB="false"
 # Enable nginx debugging mode; this uses nginx-debug binary and enabled debug logging, which is VERY verbose so separate setting
 ENV DEBUG_NGINX="false"
+
+# Manifest caching tiers. Disabled by default, to mimick 0.4/0.5 behaviour.
+# Setting it to true enables the processing of the ENVs below.
+# Once enabled, it is valid for all registries, not only DockerHub.
+# The envs *_REGEX represent a regex fragment, check entrypoint.sh to understand how they're used (nginx ~ location, PCRE syntax).
+ENV ENABLE_MANIFEST_CACHE="false"
+
+# 'Primary' tier defaults to 10m cache for frequently used/abused tags.
+# - People publishing to production via :latest (argh) will want to include that in the regex
+# - Heavy pullers who are being ratelimited but don't mind getting outdated manifests should (also) increase the cache time here
+ENV MANIFEST_CACHE_PRIMARY_REGEX="(stable|nightly|production|test)"
+ENV MANIFEST_CACHE_PRIMARY_TIME="10m"
+
+# 'Secondary' tier defaults any tag that has 3 digits or dots, in the hopes of matching most explicitly-versioned tags.
+# It caches for 60d, which is also the cache time for the large binary blobs to which the manifests refer.
+# That makes them effectively immutable. Make sure you're not affected; tighten this regex or widen the primary tier.
+ENV MANIFEST_CACHE_SECONDARY_REGEX="(.*)(\d|\.)+(.*)(\d|\.)+(.*)(\d|\.)+"
+ENV MANIFEST_CACHE_SECONDARY_TIME="60d"
+
+# The default cache duration for manifests that don't match either the primary or secondary tiers above.
+# In the default config, :latest and other frequently-used tags will get this value.
+ENV MANIFEST_CACHE_DEFAULT_TIME="1h"
 
 # Did you want a shell? Sorry, the entrypoint never returns, because it runs nginx itself. Use 'docker exec' if you need to mess around internally.
 ENTRYPOINT ["/entrypoint.sh"]

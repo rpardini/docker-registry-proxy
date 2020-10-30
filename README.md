@@ -6,6 +6,48 @@
 ## TL,DR
 
 A caching proxy for Docker; allows centralised management of (multiple) registries and their authentication; caches images from *any* registry.
+Caches the potentially huge blob/layer requests (for bandwidth/time savings), and optionally caches manifest requests ("pulls") to avoid rate-limiting.
+
+### NEW: avoiding DockerHub Pull Rate Limits with Caching
+
+Starting November 2nd, 2020, DockerHub will 
+[supposedly](https://www.docker.com/blog/docker-hub-image-retention-policy-delayed-and-subscription-updates/) 
+[start](https://www.docker.com/blog/scaling-docker-to-serve-millions-more-developers-network-egress/)
+[rate-limiting pulls](https://docs.docker.com/docker-hub/download-rate-limit/), 
+also known as the _Docker Apocalypse_. 
+The main symptom is `Error response from daemon: toomanyrequests: Too Many Requests. Please see https://docs.docker.com/docker-hub/download-rate-limit/` during pulls.
+Many unknowing Kubernetes clusters will hit the limit, and struggle to configure `imagePullSecrets` and `imagePullPolicy`.
+
+Since version `0.6.0`, this proxy can be configured with the env var `ENABLE_MANIFEST_CACHE=true` which provides 
+configurable caching of the manifest requests that DockerHub throttles. You can then fine-tune other parameters to your needs.
+Together with the possibility to centrally inject authentication (since 0.3x), this is probably one of the best ways to bring relief to your distressed cluster, while at the same time saving lots of bandwidth and time. 
+
+Note: enabling manifest caching, in its default config, effectively makes some tags **immutable**. Use with care. The configuration ENVs are explained in the [Dockerfile](./Dockerfile), relevant parts included below.
+
+```dockerfile
+# Manifest caching tiers. Disabled by default, to mimick 0.4/0.5 behaviour.
+# Setting it to true enables the processing of the ENVs below.
+# Once enabled, it is valid for all registries, not only DockerHub.
+# The envs *_REGEX represent a regex fragment, check entrypoint.sh to understand how they're used (nginx ~ location, PCRE syntax).
+ENV ENABLE_MANIFEST_CACHE="false"
+
+# 'Primary' tier defaults to 10m cache for frequently used/abused tags.
+# - People publishing to production via :latest (argh) will want to include that in the regex
+# - Heavy pullers who are being ratelimited but don't mind getting outdated manifests should (also) increase the cache time here
+ENV MANIFEST_CACHE_PRIMARY_REGEX="(stable|nightly|production|test)"
+ENV MANIFEST_CACHE_PRIMARY_TIME="10m"
+
+# 'Secondary' tier defaults any tag that has 3 digits or dots, in the hopes of matching most explicitly-versioned tags.
+# It caches for 60d, which is also the cache time for the large binary blobs to which the manifests refer.
+# That makes them effectively immutable. Make sure you're not affected; tighten this regex or widen the primary tier.
+ENV MANIFEST_CACHE_SECONDARY_REGEX="(.*)(\d|\.)+(.*)(\d|\.)+(.*)(\d|\.)+"
+ENV MANIFEST_CACHE_SECONDARY_TIME="60d"
+
+# The default cache duration for manifests that don't match either the primary or secondary tiers above.
+# In the default config, :latest and other frequently-used tags will get this value.
+ENV MANIFEST_CACHE_DEFAULT_TIME="1h"
+```
+
 
 ## What?
 
@@ -14,7 +56,7 @@ Essentially, it's a [man in the middle](https://en.wikipedia.org/wiki/Man-in-the
 The main feature is Docker layer/image caching, including layers served from S3, Google Storage, etc. 
 
 As a bonus it allows for centralized management of Docker registry credentials, which can in itself be the main feature, eg in Kubernetes environments.
- 
+
 You configure the Docker clients (_err... Kubernetes Nodes?_) once, and then all configuration is done on the proxy -- 
 for this to work it requires inserting a root CA certificate into system trusted root certs.
 
@@ -37,6 +79,7 @@ for this to work it requires inserting a root CA certificate into system trusted
 - Map volume `/docker_mirror_cache` for up to `CACHE_MAX_SIZE` (32gb by default) of cached images across all cached registries
 - Map volume `/ca`, the proxy will store the CA certificate here across restarts. **Important** this is security sensitive.
 - Env `CACHE_MAX_SIZE` (default `32g`): set the max size to be used for caching local Docker image layers. Use [Nginx sizes](http://nginx.org/en/docs/syntax.html).
+- Env `ENABLE_MANIFEST_CACHE`, see the section on pull rate limiting.
 - Env `REGISTRIES`: space separated list of registries to cache; no need to include DockerHub, its already done internally.
 - Env `AUTH_REGISTRIES`: space separated list of `hostname:username:password` authentication info.
   - `hostname`s listed here should be listed in the REGISTRIES environment as well, so they can be intercepted.
@@ -46,7 +89,7 @@ for this to work it requires inserting a root CA certificate into system trusted
 ### Simple (no auth, all cache)
 ```bash
 docker run --rm --name docker_registry_proxy -it \
-       -p 0.0.0.0:3128:3128 \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
        rpardini/docker-registry-proxy:0.5.0
@@ -60,7 +103,7 @@ For Docker Hub authentication:
 
 ```bash
 docker run --rm --name docker_registry_proxy -it \
-       -p 0.0.0.0:3128:3128 \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
@@ -88,7 +131,7 @@ For GitLab.com itself the authentication domain should be `gitlab.com`.
 
 ```bash
 docker run  --rm --name docker_registry_proxy -it \
-       -p 0.0.0.0:3128:3128 \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="reg.example.com git.example.com" \
@@ -109,7 +152,7 @@ Example with GCR using credentials from a service account from a key file `servi
 
 ```bash
 docker run --rm --name docker_registry_proxy -it \
-       -p 0.0.0.0:3128:3128 \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
@@ -172,7 +215,7 @@ This allows very in-depth debugging. Use sparingly, and definitely not in produc
 ```bash
 docker run --rm --name docker_registry_proxy -it 
        -e DEBUG_NGINX=true -e DEBUG=true -e DEBUG_HUB=true -p 0.0.0.0:8081:8081 -p 0.0.0.0:8082:8082 \
-       -p 0.0.0.0:3128:3128 \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
        rpardini/docker-registry-proxy:0.5.0-debug
