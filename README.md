@@ -21,7 +21,7 @@ for this to work it requires inserting a root CA certificate into system trusted
 ## master/:latest is unstable/beta
 
 - `:latest` and `:latest-debug` Docker tag is unstable, built from master, and amd64-only
-- Production/stable is `0.4.1`, see [0.4.1 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.4.1) - this image is multi-arch amd64/arm64
+- Production/stable is `0.4.2`, see [0.4.2 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.4.2) - this image is multi-arch amd64/arm64
 - The previous version is `0.3.0`, see [0.3.0 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.3.0) (amd64 only)
 
 ## Usage
@@ -43,7 +43,7 @@ docker run --rm --name docker_registry_proxy -it \
        -p 0.0.0.0:3128:3128 \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
-       rpardini/docker-registry-proxy:0.4.1
+       rpardini/docker-registry-proxy:0.4.2
 ```
 
 ### DockerHub auth
@@ -59,7 +59,7 @@ docker run --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
        -e AUTH_REGISTRIES="auth.docker.io:dockerhub_username:dockerhub_password your.own.registry:username:password" \
-       rpardini/docker-registry-proxy:0.4.1
+       rpardini/docker-registry-proxy:0.4.2
 ```
 
 ### Simple registries auth (HTTP Basic auth)
@@ -87,7 +87,7 @@ docker run  --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="reg.example.com git.example.com" \
        -e AUTH_REGISTRIES="git.example.com:USER:PASSWORD" \
-       rpardini/docker-registry-proxy:0.4.1
+       rpardini/docker-registry-proxy:0.4.2
 ```
 
 ### Google Container Registry (GCR) auth
@@ -110,7 +110,7 @@ docker run --rm --name docker_registry_proxy -it \
        -e AUTH_REGISTRIES_DELIMITER=";;;" \
        -e AUTH_REGISTRY_DELIMITER=":::" \
        -e AUTH_REGISTRIES="gcr.io:::_json_key:::$(cat servicekey.json);;;auth.docker.io:::dockerhub_username:::dockerhub_password" \
-       rpardini/docker-registry-proxy:0.4.1
+       rpardini/docker-registry-proxy:0.4.2
 ```
 
 ## Configuring the Docker clients / Kubernetes nodes
@@ -160,7 +160,7 @@ Test your own registry caching and authentication the same way; you don't need `
 
 ## Developing/Debugging
 
-Since `0.4.1` there is a separate `-debug` version of the image, which includes `nginx-debug`, and has `mitmproxy` (actually `mitmweb`) inserted after the CONNECT proxy but before the caching logic.
+Since `0.4.2` there is a separate `-debug` version of the image, which includes `nginx-debug`, and has `mitmproxy` (actually `mitmweb`) inserted after the CONNECT proxy but before the caching logic.
 This allows very in-depth debugging, but tends to be unstable with huge layers. Use sparingly, and definitely not in production.
 
 ```bash
@@ -169,7 +169,7 @@ docker run --rm --name docker_registry_proxy -it
        -p 0.0.0.0:3128:3128 \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
-       rpardini/docker-registry-proxy:0.4.1-debug
+       rpardini/docker-registry-proxy:0.4.2-debug
 ```
 
 - `DEBUG=true` enables the mitmweb proxy, accessible on port 8081
