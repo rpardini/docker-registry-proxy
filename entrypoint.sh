@@ -92,10 +92,11 @@ if [[ "a${DEBUG}" == "atrue" ]]; then
 
   echo "Starting in DEBUG MODE (mitmproxy)."  >&2
   echo "Run mitmproxy with reverse pointing to the same certs..."
-  mitmweb --no-web-open-browser --web-iface 0.0.0.0 --web-port 8081 \
+  mitmweb --no-web-open-browser --set web_host=0.0.0.0 --set confdir=~/.mitmproxy-incoming \
+          --set termlog_verbosity=error --set stream_large_bodies=128k --web-port 8081 \
           --set keep_host_header=true --set ssl_insecure=true \
           --mode reverse:https://127.0.0.1:444 --listen-host 0.0.0.0 \
-          --listen-port 443 --certs /certs/fullchain_with_key.pem &> /dev/null &
+          --listen-port 443 --certs /certs/fullchain_with_key.pem  &
   echo "Access mitmweb via http://127.0.0.1:8081/ "
 fi
 
@@ -110,10 +111,11 @@ if [[ "a${DEBUG_HUB}" == "atrue" ]]; then
 
   echo "Debugging outgoing DockerHub connections via mitmproxy on 8082."  >&2
   # this one has keep_host_header=false so we don't need to modify nginx config
-  mitmweb --no-web-open-browser --web-iface 0.0.0.0 --web-port 8082 \
+  mitmweb --no-web-open-browser --set web_host=0.0.0.0 --set confdir=~/.mitmproxy-outgoing-hub \
+          --set termlog_verbosity=error --set stream_large_bodies=128k --web-port 8082 \
           --set keep_host_header=false --set ssl_insecure=true \
           --mode reverse:https://registry-1.docker.io --listen-host 0.0.0.0 \
-          --listen-port 445 --certs /certs/fullchain_with_key.pem &> /dev/null &
+          --listen-port 445 --certs /certs/fullchain_with_key.pem  &
 
   echo "Warning, DockerHub outgoing debugging disables upstream SSL verification for all upstreams."  >&2
   VERIFY_SSL=false
