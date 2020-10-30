@@ -6,6 +6,7 @@
 ## TL,DR
 
 A caching proxy for Docker; allows centralised management of (multiple) registries and their authentication; caches images from *any* registry.
+Caches the potentially huge blob/layer requests (for bandwidth/time savings), and optionally caches manifest requests ("pulls") to avoid rate-limiting.
 
 ### NEW: avoiding DockerHub Pull Rate Limits with Caching
 
@@ -78,6 +79,7 @@ for this to work it requires inserting a root CA certificate into system trusted
 - Map volume `/docker_mirror_cache` for up to `CACHE_MAX_SIZE` (32gb by default) of cached images across all cached registries
 - Map volume `/ca`, the proxy will store the CA certificate here across restarts. **Important** this is security sensitive.
 - Env `CACHE_MAX_SIZE` (default `32g`): set the max size to be used for caching local Docker image layers. Use [Nginx sizes](http://nginx.org/en/docs/syntax.html).
+- Env `ENABLE_MANIFEST_CACHE`, see the section on pull rate limiting.
 - Env `REGISTRIES`: space separated list of registries to cache; no need to include DockerHub, its already done internally.
 - Env `AUTH_REGISTRIES`: space separated list of `hostname:username:password` authentication info.
   - `hostname`s listed here should be listed in the REGISTRIES environment as well, so they can be intercepted.
@@ -87,7 +89,7 @@ for this to work it requires inserting a root CA certificate into system trusted
 ### Simple (no auth, all cache)
 ```bash
 docker run --rm --name docker_registry_proxy -it \
-       -p 0.0.0.0:3128:3128 \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
        rpardini/docker-registry-proxy:0.5.0
@@ -101,7 +103,7 @@ For Docker Hub authentication:
 
 ```bash
 docker run --rm --name docker_registry_proxy -it \
-       -p 0.0.0.0:3128:3128 \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
@@ -129,7 +131,7 @@ For GitLab.com itself the authentication domain should be `gitlab.com`.
 
 ```bash
 docker run  --rm --name docker_registry_proxy -it \
-       -p 0.0.0.0:3128:3128 \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="reg.example.com git.example.com" \
@@ -150,7 +152,7 @@ Example with GCR using credentials from a service account from a key file `servi
 
 ```bash
 docker run --rm --name docker_registry_proxy -it \
-       -p 0.0.0.0:3128:3128 \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
@@ -213,7 +215,7 @@ This allows very in-depth debugging. Use sparingly, and definitely not in produc
 ```bash
 docker run --rm --name docker_registry_proxy -it 
        -e DEBUG_NGINX=true -e DEBUG=true -e DEBUG_HUB=true -p 0.0.0.0:8081:8081 -p 0.0.0.0:8082:8082 \
-       -p 0.0.0.0:3128:3128 \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
        rpardini/docker-registry-proxy:0.5.0-debug
