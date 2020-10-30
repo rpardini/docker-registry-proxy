@@ -43,7 +43,7 @@ jobs:
       # due to the way manifests work, the gap between this and the complete push below
       #  could result in pull failures or inconsistencies for arm64, such is life.
       # further duplicated by building both release and debug builds
-      - name: Build and push amd64 Release Docker Image to DockerHub
+      - name: Build and push amd64 Release Docker Image to DockerHub/GitHub CR
         uses: docker/build-push-action@v2
         with:
           build-args: |
@@ -58,7 +58,7 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache/release
           cache-to: type=local,mode=max,dest=/tmp/.buildx-cache/release
 
-      - name: Build and push amd64 Debug Docker Image to DockerHub
+      - name: Build and push amd64 Debug Docker Image to DockerHub/GitHub CR
         uses: docker/build-push-action@v2
         with:
           build-args: |
