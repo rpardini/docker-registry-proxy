@@ -160,20 +160,21 @@ Test your own registry caching and authentication the same way; you don't need `
 
 ## Developing/Debugging
 
-Since `0.4.2` there is a separate `-debug` version of the image, which includes `nginx-debug`, and has `mitmproxy` (actually `mitmweb`) inserted after the CONNECT proxy but before the caching logic.
-This allows very in-depth debugging, but tends to be unstable with huge layers. Use sparingly, and definitely not in production.
+Since `0.4` there is a separate `-debug` version of the image, which includes `nginx-debug`, and (since 0.5.x) has a `mitmproxy` (actually `mitmweb`) inserted after the CONNECT proxy but before the caching logic, and a second `mitmweb` between the caching layer and DockerHub.
+This allows very in-depth debugging. Use sparingly, and definitely not in production.
 
 ```bash
 docker run --rm --name docker_registry_proxy -it 
-       -e DEBUG_NGINX=true -e DEBUG=true -p 0.0.0.0:8081:8081 \
+       -e DEBUG_NGINX=true -e DEBUG=true -e DEBUG_HUB=true -p 0.0.0.0:8081:8081 -p 0.0.0.0:8082:8082 \
        -p 0.0.0.0:3128:3128 \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
        rpardini/docker-registry-proxy:0.4.2-debug
 ```
 
-- `DEBUG=true` enables the mitmweb proxy, accessible on port 8081
-- `DEBUG_NGINX=true` enables nginx-debug and debug logging, which probably is too much.
+- `DEBUG=true` enables the mitmweb proxy between Docker clients and the caching layer, accessible on port 8081
+- `DEBUG_HUB=true` enables the mitmweb proxy between the caching layer and DockerHub, accessible on port 8082 (since 0.5.x)
+- `DEBUG_NGINX=true` enables nginx-debug and debug logging, which probably is too much. Seriously.
 
 ## Gotchas
 
