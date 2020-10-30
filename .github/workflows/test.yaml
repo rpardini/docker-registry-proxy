@@ -53,10 +53,10 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache/release
           # this only reads from the cache
 
-      - name: Start proxy instance in docker
+      - name: Start proxy instance in docker (ENABLE_MANIFEST_CACHE=false)
         run: |
           docker run -d --rm --name docker_registry_proxy \
-            -p 0.0.0.0:3128:3128 \
+            -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=false \
             -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
             -v $(pwd)/docker_mirror_certs:/ca \
             sanity-check/docker-registry-proxy:latest
@@ -115,10 +115,10 @@ jobs:
         run: |
           sudo systemctl restart docker.service
 
-      - name: Start proxy instance in docker again
+      - name: Start proxy instance in docker again (ENABLE_MANIFEST_CACHE=true)
         run: |
           docker run -d --rm --name docker_registry_proxy \
-            -p 0.0.0.0:3128:3128 \
+            -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
             -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
             -v $(pwd)/docker_mirror_certs:/ca \
             sanity-check/docker-registry-proxy:latest
