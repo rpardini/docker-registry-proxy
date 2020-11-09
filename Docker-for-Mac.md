@@ -1,3 +1,10 @@
+# Attention: issues for developer scenarios!
+
+- beware: this will probably break your Docker for Mac install in more ways than one
+- docker for mac does bizarre stuff with proxies, affecting runtime and building of containers
+- you might run into https://github.com/docker/for-mac/issues/2467 
+  - building images is affected for sure; simple "FROM ubuntu; RUN apt update" fails
+
 # Using a Docker Desktop for Mac as a client for the proxy
 
 First, know this is a MiTM, and could break with new Docker Desktop for Mac releases or during resets/reinstalls/upgrades.
