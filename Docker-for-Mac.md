@@ -1,4 +1,4 @@
-# Using a Docker Desktop for Mac as a client for the proxy (stable version)
+# Using a Docker Desktop for Mac as a client for the proxy
 
 First, know this is a MiTM, and could break with new Docker Desktop for Mac releases or during resets/reinstalls/upgrades.
 
