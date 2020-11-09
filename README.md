@@ -73,7 +73,7 @@ for this to work it requires inserting a root CA certificate into system trusted
 - Since 0.5.x, they both carry the same images
 - This can be useful if you're already hitting DockerHub's rate limits and can't pull the proxy from DockerHub
 
-## Usage
+## Usage (running the Proxy server)
 
 - Run the proxy on a host close (network-wise: high bandwidth, same-VPC, etc) to the Docker clients
 - Expose port 3128 to the network
@@ -163,7 +163,11 @@ docker run --rm --name docker_registry_proxy -it \
        rpardini/docker-registry-proxy:0.6.0
 ```
 
-## Configuring the Docker clients / Kubernetes nodes
+## Configuring the Docker clients using Docker Desktop for Mac
+
+Separate instructions for Mac clients available in [this dedicated Doc Desktop for Mac document](Docker-for-Mac.md).
+
+## Configuring the Docker clients / Kubernetes nodes / Linux clients
 
 Let's say you setup the proxy on host `192.168.66.72`, you can then `curl http://192.168.66.72:3128/ca.crt` and get the proxy CA certificate.
 
@@ -254,6 +258,8 @@ Yeah. Docker Inc should do it. So should NPM, Inc. Wonder why they don't. 😼
 
 ### TODO:
 
+- [x] Basic Docker-for-Mac set-up instructions
+- [ ] Basic Docker-for-Windows set-up instructions. 
 - [ ] Test and make auth work with quay.io, unfortunately I don't have access to it (_hint, hint, quay_)
 - [x] Hide the mitmproxy building code under a Docker build ARG.
 - [ ] "Developer Office" proxy scenario, where many developers on a fast LAN share a proxy for bandwidth and speed savings (already works for pulls, but messes up pushes, which developers tend to use a lot)
