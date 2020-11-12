@@ -3,23 +3,23 @@ version: 2
 jobs:
   buildImage:
     docker:
-      - image: ischyon/ci-commons:v1.2.2
+      - image: docker:19.03
     steps:
       - checkout
       - setup_remote_docker
       - run:
           command: |
-
+            ./scripts/build-image.sh fgimenez/docker-registry-proxy .
 
   publishImage:
     docker:
-      - image: ischyon/ci-commons:v1.2.2
+      - image: docker:19.03
     steps:
       - checkout
       - setup_remote_docker
       - run:
           command: |
-
+            ./scripts/publish-image.sh fgimenez/docker-registry-proxy
 
 workflows:
   version: 2
