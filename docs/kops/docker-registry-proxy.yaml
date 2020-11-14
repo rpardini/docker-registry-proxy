@@ -1,0 +1,81 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: docker-registry-proxy
+  namespace: registry-mirrors
+  labels:
+    app.kubernetes.io/name: docker-registry-proxy
+spec:
+  serviceName: docker-registry
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: docker-registry-proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: docker-registry-proxy
+    spec:
+      serviceAccountName: default
+      containers:
+        - name: docker-registry-proxy
+          image: ghcr.io/rpardini/docker-registry-proxy:0.6.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: ENABLE_MANIFEST_CACHE
+              value: "true"
+            - name: REGISTRIES
+              value: "k8s.gcr.io gcr.io quay.io us.gcr.io"
+          ports:
+            - name: http
+              containerPort: 3128
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          volumeMounts:
+            - name: ca
+              mountPath: /ca
+            - name: docker-registry-cache
+              mountPath: /docker_mirror_cache
+          resources: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: ca
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+    - metadata:
+        name: docker-registry-cache
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 100Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docker-registry-proxy
+  namespace: registry-mirrors
+  labels:
+    app.kubernetes.io/name: docker-registry-proxy
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: docker-registry-proxy.<your_domain>
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 3128
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: docker-registry-proxy
