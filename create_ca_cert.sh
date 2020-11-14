@@ -31,6 +31,9 @@ CA_SRL_FILE=/ca/ca.srl
 
 if [ -f "$CA_CRT_FILE" ] ; then
     logInfo "CA already exists. Good. We'll reuse it."
+    if [ ! -f "$CA_SRL_FILE" ] ; then
+        echo 01 > ${CA_SRL_FILE}
+    fi
 else
     logInfo "No CA was found. Generating one."
     logInfo "*** Please *** make sure to mount /ca as a volume -- if not, everytime this container starts, it will regenerate the CA and nothing will work."
