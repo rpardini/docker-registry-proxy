@@ -41,11 +41,9 @@ VOLUME /docker_mirror_cache
 VOLUME /ca
 
 # Add our configuration
-ADD nginx.conf \
-  nginx.manifest.common.conf \
-  nginx.manifest.stale.conf \
-  nginx.manifest.methods.conf \
-  /etc/nginx/
+ADD nginx.conf /etc/nginx/nginx.conf
+ADD nginx.manifest.common.conf /etc/nginx/nginx.manifest.common.conf
+ADD nginx.manifest.stale.conf /etc/nginx/nginx.manifest.stale.conf
 
 # Add our very hackish entrypoint and ca-building scripts, make them executable
 ADD entrypoint.sh /entrypoint.sh
