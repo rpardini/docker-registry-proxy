@@ -121,6 +121,29 @@ echo "Manifest caching config: ---"
 cat /etc/nginx/nginx.manifest.caching.config.conf
 echo "---"
 
+if [[ "a${ALLOW_PUSH}" == "atrue" ]]; then
+    cat <<EOF > /etc/nginx/conf.d/allowed.methods.conf
+    # allow to upload big layers
+    client_max_body_size 0;
+
+    # only cache GET requests
+    proxy_cache_methods GET;
+EOF
+else
+    cat <<EOF > /etc/nginx/conf.d/allowed.methods.conf
+    # Block POST/PUT/DELETE. Don't use this proxy for pushing.
+    if ($request_method = POST) {
+        return 405 "POST method is not allowed";
+    }
+    if ($request_method = PUT) {
+        return 405 "PUT method is not allowed";
+    }
+    if ($request_method = DELETE) {
+        return 405  "DELETE method is not allowed";
+    }
+EOF
+fi
+
 # normally use non-debug version of nginx
 NGINX_BIN="/usr/sbin/nginx"
 
