@@ -130,7 +130,7 @@ if [[ "a${ALLOW_PUSH}" == "atrue" ]]; then
     proxy_cache_methods GET;
 EOF
 else
-    cat <<EOF > /etc/nginx/conf.d/allowed.methods.conf
+    cat << 'EOF' > /etc/nginx/conf.d/allowed.methods.conf
     # Block POST/PUT/DELETE. Don't use this proxy for pushing.
     if ($request_method = POST) {
         return 405 "POST method is not allowed";
