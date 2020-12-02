@@ -94,5 +94,8 @@ ENV MANIFEST_CACHE_SECONDARY_TIME="60d"
 # In the default config, :latest and other frequently-used tags will get this value.
 ENV MANIFEST_CACHE_DEFAULT_TIME="1h"
 
+# Should we allow actions different than pull, default to false.
+ENV ALLOW_PUSH="false"
+
 # Did you want a shell? Sorry, the entrypoint never returns, because it runs nginx itself. Use 'docker exec' if you need to mess around internally.
 ENTRYPOINT ["/entrypoint.sh"]
