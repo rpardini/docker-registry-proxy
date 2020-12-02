@@ -19,7 +19,7 @@ spec:
       serviceAccountName: default
       containers:
         - name: docker-registry-proxy
-          image: ghcr.io/rpardini/docker-registry-proxy:0.6.0
+          image: ghcr.io/rpardini/docker-registry-proxy:0.6.1
           imagePullPolicy: IfNotPresent
           env:
             - name: ENABLE_MANIFEST_CACHE
