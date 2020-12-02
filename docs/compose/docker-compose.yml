@@ -1,0 +1,16 @@
+version: '3.7'
+
+services:
+  docker_registry_proxy:
+    image: rpardini/docker-registry-proxy:0.6.0 # Check and make sure this is the last released version
+    env_file: # This contains REGISTRIES and AUTH_REGISTRIES
+      - ./secrets.env
+    environment:
+      - CACHE_MAX_SIZE=256g
+      - ENABLE_MANIFEST_CACHE=true
+    volumes:
+      # Format: <host-path>:<container-path>; adapt to your needs
+      - ./docker_mirror_cache:/docker_mirror_cache # This will be up to CACHE_MAX_SIZE big
+      - ./docker_mirror_certs:/ca
+    ports:
+      - 0.0.0.0:3128:3128 # 0.0.0.0 binds to all interfaces
