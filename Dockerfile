@@ -97,5 +97,20 @@ ENV MANIFEST_CACHE_DEFAULT_TIME="1h"
 # Should we allow actions different than pull, default to false.
 ENV ALLOW_PUSH="false"
 
+# Timeouts
+# ngx_http_core_module
+ENV SEND_TIMEOUT="60s"
+ENV CLIENT_BODY_TIMEOUT="60s"
+ENV CLIENT_HEADER_TIMEOUT="60s"
+ENV KEEPALIVE_TIMEOUT="300s"
+# ngx_http_proxy_module
+ENV PROXY_READ_TIMEOUT="60s"
+ENV PROXY_CONNECT_TIMEOUT="60s"
+ENV PROXY_SEND_TIMEOUT="60s"
+# ngx_http_proxy_connect_module - external module
+ENV PROXY_CONNECT_READ_TIMEOUT="60s"
+ENV PROXY_CONNECT_CONNECT_TIMEOUT="60s"
+ENV PROXY_CONNECT_SEND_TIMEOUT="60s"
+
 # Did you want a shell? Sorry, the entrypoint never returns, because it runs nginx itself. Use 'docker exec' if you need to mess around internally.
 ENTRYPOINT ["/entrypoint.sh"]

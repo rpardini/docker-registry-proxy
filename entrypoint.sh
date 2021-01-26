@@ -117,7 +117,7 @@ EOD
     }
 EOD
 
-echo "Manifest caching config: ---"
+echo -e "\nManifest caching config: ---\n"
 cat /etc/nginx/nginx.manifest.caching.config.conf
 echo "---"
 
@@ -201,6 +201,33 @@ if [[ "a${DEBUG_NGINX}" == "atrue" ]]; then
   NGINX_BIN="/usr/sbin/nginx-debug"
 fi
 
+
+# Timeout configurations
+echo "" > /etc/nginx/nginx.timeouts.config.conf
+cat <<EOD >>/etc/nginx/nginx.timeouts.config.conf
+  # Timeouts
+
+  # ngx_http_core_module
+  keepalive_timeout  ${KEEPALIVE_TIMEOUT};
+  send_timeout ${SEND_TIMEOUT};
+  client_body_timeout ${CLIENT_BODY_TIMEOUT};
+  client_header_timeout ${CLIENT_HEADER_TIMEOUT};
+
+  # ngx_http_proxy_module
+  proxy_read_timeout ${PROXY_READ_TIMEOUT};
+  proxy_connect_timeout ${PROXY_CONNECT_TIMEOUT};
+  proxy_send_timeout ${PROXY_SEND_TIMEOUT};
+
+  # ngx_http_proxy_connect_module - external module
+  proxy_connect_read_timeout ${PROXY_CONNECT_READ_TIMEOUT};
+  proxy_connect_connect_timeout ${PROXY_CONNECT_CONNECT_TIMEOUT};
+  proxy_connect_send_timeout ${PROXY_CONNECT_SEND_TIMEOUT};
+EOD
+
+echo -e "\nTimeout configs: ---"
+cat /etc/nginx/nginx.timeouts.config.conf
+echo -e "---\n"
+
 # Upstream SSL verification.
 echo "" > /etc/nginx/docker.verify.ssl.conf
 if [[ "a${VERIFY_SSL}" == "atrue" ]]; then
@@ -216,7 +243,6 @@ EOD
 else
     echo "Upstream SSL certificate verification is DISABLED."
 fi
-
 
 echo "Testing nginx config..."
 ${NGINX_BIN} -t
