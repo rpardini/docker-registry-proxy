@@ -63,7 +63,7 @@ for this to work it requires inserting a root CA certificate into system trusted
 ## master/:latest is unstable/beta
 
 - `:latest` and `:latest-debug` Docker tag is unstable, built from master, and amd64-only
-- Production/stable is `0.6.1`, see [0.6.1 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.6.1) - this image is multi-arch amd64/arm64
+- Production/stable is `0.6.2`, see [0.6.2 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.6.2) - this image is multi-arch amd64/arm64
 - The previous version is `0.5.0`, without any manifest caching, see [0.5.0 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.5.0) - this image is multi-arch amd64/arm64
 
 ## Also hosted on GitHub Container Registry (ghcr.io)
@@ -79,6 +79,7 @@ for this to work it requires inserting a root CA certificate into system trusted
 - Expose port 3128 to the network
 - Map volume `/docker_mirror_cache` for up to `CACHE_MAX_SIZE` (32gb by default) of cached images across all cached registries
 - Map volume `/ca`, the proxy will store the CA certificate here across restarts. **Important** this is security sensitive.
+- Env `ALLOW_PUSH` : This bypasses the proxy when pushing, default to false - if kept to false, pushing will not work. For more info see this [commit](https://github.com/rpardini/docker-registry-proxy/commit/536f0fc8a078d03755f1ae8edc19a86fc4b37fcf).
 - Env `CACHE_MAX_SIZE` (default `32g`): set the max size to be used for caching local Docker image layers. Use [Nginx sizes](http://nginx.org/en/docs/syntax.html).
 - Env `ENABLE_MANIFEST_CACHE`, see the section on pull rate limiting.
 - Env `REGISTRIES`: space separated list of registries to cache; no need to include DockerHub, its already done internally.
@@ -86,6 +87,18 @@ for this to work it requires inserting a root CA certificate into system trusted
   - `hostname`s listed here should be listed in the REGISTRIES environment as well, so they can be intercepted.
 - Env `AUTH_REGISTRIES_DELIMITER` to change the separator between authentication info. By default, a space: "` `". If you use keys that contain spaces (as with Google Cloud Registry), you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=";;;"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:user1:pass1;;;registry2.com:user2:pass2`.
 - Env `AUTH_REGISTRY_DELIMITER` to change the separator between authentication info *parts*. By default, a colon: "`:`". If you use keys that contain single colons, you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=":::"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:::user1:::pass1 registry2.com:::user2:::pass2`.
+- Timeouts ENVS - all of them can pe specified to control different timeouts, and if not set, the defaults will be the ones from `Dockerfile`. The directives will be added into `http` block.:
+  - SEND_TIMEOUT : see [send_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#send_timeout)
+  - CLIENT_BODY_TIMEOUT : see [client_body_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_body_timeout)
+  - CLIENT_HEADER_TIMEOUT : see [client_header_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_header_timeout)
+  - KEEPALIVE_TIMEOUT : see [keepalive_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#keepalive_timeout
+  - PROXY_READ_TIMEOUT : see [proxy_read_timeout](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_read_timeout)
+  - PROXY_CONNECT_TIMEOUT : see [proxy_connect_timeout](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_connect_timeout)
+  - PROXY_SEND_TIMEOUT : see [proxy_send_timeout](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_send_timeout)
+  - PROXY_CONNECT_READ_TIMEOUT : see [proxy_connect_read_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_read_timeout)
+  - PROXY_CONNECT_CONNECT_TIMEOUT : see [proxy_connect_connect_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_connect_timeout)
+  - PROXY_CONNECT_SEND_TIMEOUT : see [proxy_connect_send_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_send_timeout))
+
 
 ### Simple (no auth, all cache)
 ```bash
@@ -93,7 +106,7 @@ docker run --rm --name docker_registry_proxy -it \
        -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
-       rpardini/docker-registry-proxy:0.6.1
+       rpardini/docker-registry-proxy:0.6.2
 ```
 
 ### DockerHub auth
@@ -109,7 +122,7 @@ docker run --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
        -e AUTH_REGISTRIES="auth.docker.io:dockerhub_username:dockerhub_password your.own.registry:username:password" \
-       rpardini/docker-registry-proxy:0.6.1
+       rpardini/docker-registry-proxy:0.6.2
 ```
 
 ### Simple registries auth (HTTP Basic auth)
@@ -137,7 +150,7 @@ docker run  --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="reg.example.com git.example.com" \
        -e AUTH_REGISTRIES="git.example.com:USER:PASSWORD" \
-       rpardini/docker-registry-proxy:0.6.1
+       rpardini/docker-registry-proxy:0.6.2
 ```
 
 ### Google Container Registry (GCR) auth
@@ -160,7 +173,7 @@ docker run --rm --name docker_registry_proxy -it \
        -e AUTH_REGISTRIES_DELIMITER=";;;" \
        -e AUTH_REGISTRY_DELIMITER=":::" \
        -e AUTH_REGISTRIES="gcr.io:::_json_key:::$(cat servicekey.json);;;auth.docker.io:::dockerhub_username:::dockerhub_password" \
-       rpardini/docker-registry-proxy:0.6.1
+       rpardini/docker-registry-proxy:0.6.2
 ```
 
 ## Configuring the Docker clients using Docker Desktop for Mac
@@ -188,10 +201,18 @@ Environment="HTTP_PROXY=http://192.168.66.72:3128/"
 Environment="HTTPS_PROXY=http://192.168.66.72:3128/"
 EOD
 
+### UBUNTU
 # Get the CA certificate from the proxy and make it a trusted root.
 curl http://192.168.66.72:3128/ca.crt > /usr/share/ca-certificates/docker_registry_proxy.crt
 echo "docker_registry_proxy.crt" >> /etc/ca-certificates.conf
 update-ca-certificates --fresh
+###
+
+### CENTOS
+# Get the CA certificate from the proxy and make it a trusted root.
+curl http://192.168.66.72:3128/ca.crt > /etc/pki/ca-trust/source/anchors/docker_registry_proxy.crt
+update-ca-trust
+###
 
 # Reload systemd
 systemctl daemon-reload
@@ -223,7 +244,7 @@ docker run --rm --name docker_registry_proxy -it
        -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
-       rpardini/docker-registry-proxy:0.6.1-debug
+       rpardini/docker-registry-proxy:0.6.2-debug
 ```
 
 - `DEBUG=true` enables the mitmweb proxy between Docker clients and the caching layer, accessible on port 8081
@@ -234,7 +255,7 @@ docker run --rm --name docker_registry_proxy -it
 
 - If you authenticate to a private registry and pull through the proxy, those images will be served to any client that can reach the proxy, even without authentication. *beware*
 - Repeat, **this will make your private images very public if you're not careful**.
-- **Currently you cannot push images while using the proxy** which is a shame. PRs welcome.
+- ~~**Currently you cannot push images while using the proxy** which is a shame. PRs welcome.~~ **SEE `ALLOW_PUSH` ENV FROM USAGE SECTION.**
 - Setting this on Linux is relatively easy. 
   - On Mac and Windows the CA-certificate part will be very different but should work in principle.
   - Please send PRs with instructions for Windows and Mac if you succeed!
