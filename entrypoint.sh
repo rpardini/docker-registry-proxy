@@ -4,7 +4,7 @@ set -Eeuo pipefail
 trap "echo TRAPed signal" HUP INT QUIT TERM
 
 #configure nginx DNS settings to match host, why must we do that nginx?
-conf="resolver $(/usr/bin/awk 'BEGIN{ORS=" "} $1=="nameserver" {print $2}' /etc/resolv.conf) ipv6=off; # Avoid ipv6 addresses for now"
+conf="resolver $(/usr/bin/awk 'BEGIN{ORS=" "} $1=="nameserver" {print $2}' /etc/resolv.conf);"
 [ "$conf" = "resolver ;" ] && echo "no nameservers found" && exit 0
 confpath=/etc/nginx/resolvers.conf
 if [ ! -e $confpath ] || [ "$conf" != "$(cat $confpath)" ]
