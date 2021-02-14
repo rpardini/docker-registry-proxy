@@ -4,12 +4,28 @@ set -Eeuo pipefail
 trap "echo TRAPed signal" HUP INT QUIT TERM
 
 #configure nginx DNS settings to match host, why must we do that nginx?
-conf="resolver $(/usr/bin/awk 'BEGIN{ORS=" "} $1=="nameserver" {print $2}' /etc/resolv.conf);"
-[ "$conf" = "resolver ;" ] && echo "no nameservers found" && exit 0
+export RESOLVERS=$(awk '$1 == "nameserver" {print ($2 ~ ":")? "["$2"]": $2}' ORS=' ' /etc/resolv.conf | sed 's/ *$//g')
+if [ "x$RESOLVERS" = "x" ]; then
+    echo "Warning: unable to determine DNS resolvers for nginx" >&2
+    exit 66
+fi
+
+echo "DEBUG, determined RESOLVERS from /etc/resolv.conf: '$RESOLVERS'"
+
+conf=""
+for ONE_RESOLVER in ${RESOLVERS}; do
+	echo "Possible resolver: $ONE_RESOLVER"
+	conf="resolver $ONE_RESOLVER; "
+done
+
+echo "Final chosen resolver: $conf"
 confpath=/etc/nginx/resolvers.conf
 if [ ! -e $confpath ] || [ "$conf" != "$(cat $confpath)" ]
 then
+    echo "Using auto-determined resolver '$conf' via '$confpath'"
     echo "$conf" > $confpath
+else
+    echo "Not using resolver config, keep existing '$confpath' -- mounted by user?"
 fi
 
 # The list of SAN (Subject Alternative Names) for which we will create a TLS certificate.
