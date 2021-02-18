@@ -66,12 +66,15 @@ ENV REGISTRIES="docker.caching.proxy.internal registry-1.docker.io auth.docker.i
 ENV AUTH_REGISTRIES=""
 # Should we verify upstream's certificates? Default to true.
 ENV VERIFY_SSL="true"
+
 # Enable debugging mode; this inserts mitmproxy/mitmweb between the CONNECT proxy and the caching layer
 ENV DEBUG="false"
 # Enable debugging mode; this inserts mitmproxy/mitmweb between the caching layer and DockerHub's registry
 ENV DEBUG_HUB="false"
 # Enable nginx debugging mode; this uses nginx-debug binary and enabled debug logging, which is VERY verbose so separate setting
 ENV DEBUG_NGINX="false"
+# Enable debugging mode for creating CA certificate
+ENV DEBUG_CA_CERT="false"
 
 # Set Docker Registry cache size, by default, 32 GB ('32g')
 ENV CACHE_MAX_SIZE="32g"
