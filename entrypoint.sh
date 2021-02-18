@@ -137,6 +137,17 @@ echo -e "\nManifest caching config: ---\n"
 cat /etc/nginx/nginx.manifest.caching.config.conf
 echo "---"
 
+if [[ "a${ALLOW_OWN_AUTH}" == "atrue" ]]; then
+    cat << 'EOF' > /etc/nginx/conf.d/allowed_override_auth.conf
+    if ($http_authorization != "") {
+        # override with own authentication if provided
+        set $finalAuth $http_authorization;
+    }
+EOF
+else
+    echo '' > /etc/nginx/conf.d/allowed_override_auth.conf
+fi
+
 if [[ "a${ALLOW_PUSH}" == "atrue" ]]; then
     cat <<EOF > /etc/nginx/conf.d/allowed.methods.conf
     # allow to upload big layers
