@@ -13,11 +13,11 @@ LABEL org.opencontainers.image.source https://github.com/rpardini/docker-registr
 RUN apk add --no-cache --update bash ca-certificates-bundle coreutils openssl
 
 # If set to 1, enables building mitmproxy, which helps a lot in debugging, but is super heavy to build.
-ARG DEBUG_BUILD="1"
+ARG DEBUG_BUILD="0"
 ENV DO_DEBUG_BUILD="$DEBUG_BUILD"
 
 # Build mitmproxy via pip. This is heavy, takes minutes do build and creates a 90mb+ layer. Oh well.
-RUN [[ "a$DO_DEBUG_BUILD" == "a1" ]] && { echo "Debug build ENABLED." \
+RUN [ "$DO_DEBUG_BUILD" = "1" ] && { echo "Debug build ENABLED." \
  && apk add --no-cache --update su-exec git g++ libffi libffi-dev libstdc++ openssl-dev python3 python3-dev py3-pip py3-wheel py3-six py3-idna py3-certifi py3-setuptools \
  && LDFLAGS=-L/lib pip install mitmproxy==5.2 \
  && apk del --purge git g++ libffi-dev openssl-dev python3-dev py3-pip py3-wheel \
@@ -28,7 +28,7 @@ RUN [[ "a$DO_DEBUG_BUILD" == "a1" ]] && { echo "Debug build ENABLED." \
 ENV LANG=en_US.UTF-8
 
 # Check the installed mitmproxy version, if built.
-RUN [[ "a$DO_DEBUG_BUILD" == "a1" ]] && { mitmproxy --version && mitmweb --version ; } || { echo "Debug build disabled."; }
+RUN [ "$DO_DEBUG_BUILD" = "1" ] && { mitmproxy --version && mitmweb --version ; } || { echo "Debug build disabled."; }
 
 # Create the cache directory and CA directory
 RUN mkdir -p /docker_mirror_cache /ca
@@ -60,17 +60,24 @@ EXPOSE 8082
 
 ## Default envs.
 # A space delimited list of registries we should proxy and cache; this is in addition to the central DockerHub.
-ENV REGISTRIES="k8s.gcr.io gcr.io quay.io"
+ENV REGISTRIES="auth.docker.io registry-1.docker.io docker.caching.proxy.internal k8s.gcr.io gcr.io quay.io gitlab.com registry.gitlab.com"
 # A space delimited list of registry:user:password to inject authentication for
-ENV AUTH_REGISTRIES="some.authenticated.registry:oneuser:onepassword another.registry:user:password"
+# (e.g. AUTH_REGISTRIES="auth.docker.io:dhuser:dhpass gitlab.com:gluser:glpass")
+ENV AUTH_REGISTRIES=""
 # Should we verify upstream's certificates? Default to true.
 ENV VERIFY_SSL="true"
+
 # Enable debugging mode; this inserts mitmproxy/mitmweb between the CONNECT proxy and the caching layer
 ENV DEBUG="false"
 # Enable debugging mode; this inserts mitmproxy/mitmweb between the caching layer and DockerHub's registry
 ENV DEBUG_HUB="false"
 # Enable nginx debugging mode; this uses nginx-debug binary and enabled debug logging, which is VERY verbose so separate setting
 ENV DEBUG_NGINX="false"
+# Enable debugging mode for creating CA certificate
+ENV DEBUG_CA_CERT="false"
+
+# Set Docker Registry cache size, by default, 32 GB ('32g')
+ENV CACHE_MAX_SIZE="32g"
 
 # Manifest caching tiers. Disabled by default, to mimick 0.4/0.5 behaviour.
 # Setting it to true enables the processing of the ENVs below.
@@ -94,8 +101,13 @@ ENV MANIFEST_CACHE_SECONDARY_TIME="60d"
 # In the default config, :latest and other frequently-used tags will get this value.
 ENV MANIFEST_CACHE_DEFAULT_TIME="1h"
 
+# Should we allow overridding with own authentication, default to false.
+ENV ALLOW_OWN_AUTH="false"
+
 # Should we allow actions different than pull, default to false.
 ENV ALLOW_PUSH="false"
+# Should we allow push only with own authentication, default to false.
+ENV ALLOW_PUSH_WITH_OWN_AUTH="false"
 
 # Timeouts
 # ngx_http_core_module

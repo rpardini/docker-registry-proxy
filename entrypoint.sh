@@ -5,7 +5,7 @@ trap "echo TRAPed signal" HUP INT QUIT TERM
 
 #configure nginx DNS settings to match host, why must we do that nginx?
 export RESOLVERS=$(awk '$1 == "nameserver" {print ($2 ~ ":")? "["$2"]": $2}' ORS=' ' /etc/resolv.conf | sed 's/ *$//g')
-if [ "x$RESOLVERS" = "x" ]; then
+if [ -z "$RESOLVERS" ]; then
     echo "Warning: unable to determine DNS resolvers for nginx" >&2
     exit 66
 fi
@@ -20,7 +20,7 @@ done
 
 echo "Final chosen resolver: $conf"
 confpath=/etc/nginx/resolvers.conf
-if [ ! -e $confpath ] || [ "$conf" != "$(cat $confpath)" ]
+if [ ! -e "$confpath" ] || [ "$conf" != "$(cat "$confpath")" ]
 then
     echo "Using auto-determined resolver '$conf' via '$confpath'"
     echo "$conf" > $confpath
@@ -36,7 +36,7 @@ ALLDOMAINS=""
 echo -n "" > /etc/nginx/docker.intercept.map
 
 # Some hosts/registries are always needed, but others can be configured in env var REGISTRIES
-for ONEREGISTRYIN in docker.caching.proxy.internal registry-1.docker.io auth.docker.io ${REGISTRIES}; do
+for ONEREGISTRYIN in ${REGISTRIES}; do
     ONEREGISTRY=$(echo ${ONEREGISTRYIN} | xargs) # Remove whitespace
     echo "Adding certificate for registry: $ONEREGISTRY"
     ALLDOMAINS="${ALLDOMAINS},DNS:${ONEREGISTRY}"
@@ -55,7 +55,7 @@ echo -n "" > /etc/nginx/docker.targetHost.map
 echo -n "" > /etc/nginx/docker.auth.map
 
 # Only configure auth registries if the env var contains values
-if [ "$AUTH_REGISTRIES" ]; then
+if [ -n "$AUTH_REGISTRIES" ]; then
     # Ref: https://stackoverflow.com/a/47633817/219530
     AUTH_REGISTRIES_DELIMITER=${AUTH_REGISTRIES_DELIMITER:-" "}
     s=$AUTH_REGISTRIES$AUTH_REGISTRIES_DELIMITER
@@ -87,9 +87,6 @@ fi
 echo "        listen 443 ssl default_server;" > /etc/nginx/caching.layer.listen
 echo "error_log  /var/log/nginx/error.log warn;" > /etc/nginx/error.log.debug.warn
 
-# Set Docker Registry cache size, by default, 32 GB ('32g')
-CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
-
 # The cache directory. This can get huge. Better to use a Docker volume pointing here!
 # Set to 32gb which should be enough
 echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE inactive=60d keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/cache_max_size.conf
@@ -97,48 +94,83 @@ echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE 
 # Manifest caching configuration. We generate config based on the environment vars.
 echo -n "" >/etc/nginx/nginx.manifest.caching.config.conf
 
-[[ "a${ENABLE_MANIFEST_CACHE}" == "atrue" ]] && [[ "a${MANIFEST_CACHE_PRIMARY_REGEX}" != "a" ]] && cat <<EOD >>/etc/nginx/nginx.manifest.caching.config.conf
+if [ "${ENABLE_MANIFEST_CACHE}" = "true" ]; then
+    [ -n "${MANIFEST_CACHE_PRIMARY_REGEX}" ] && cat <<EOF >>/etc/nginx/nginx.manifest.caching.config.conf
     # First tier caching of manifests; configure via MANIFEST_CACHE_PRIMARY_REGEX and MANIFEST_CACHE_PRIMARY_TIME
     location ~ ^/v2/(.*)/manifests/${MANIFEST_CACHE_PRIMARY_REGEX} {
         set \$docker_proxy_request_type "manifest-primary";
         proxy_cache_valid ${MANIFEST_CACHE_PRIMARY_TIME};
         include "/etc/nginx/nginx.manifest.stale.conf";
     }
-EOD
-
-[[ "a${ENABLE_MANIFEST_CACHE}" == "atrue" ]] && [[ "a${MANIFEST_CACHE_SECONDARY_REGEX}" != "a" ]] && cat <<EOD >>/etc/nginx/nginx.manifest.caching.config.conf
+EOF
+    [ -n "${MANIFEST_CACHE_SECONDARY_REGEX}" ] && cat <<EOF >>/etc/nginx/nginx.manifest.caching.config.conf
     # Secondary tier caching of manifests; configure via MANIFEST_CACHE_SECONDARY_REGEX and MANIFEST_CACHE_SECONDARY_TIME
     location ~ ^/v2/(.*)/manifests/${MANIFEST_CACHE_SECONDARY_REGEX} {
         set \$docker_proxy_request_type "manifest-secondary";
         proxy_cache_valid ${MANIFEST_CACHE_SECONDARY_TIME};
         include "/etc/nginx/nginx.manifest.stale.conf";
     }
-EOD
-
-[[ "a${ENABLE_MANIFEST_CACHE}" == "atrue" ]] && cat <<EOD >>/etc/nginx/nginx.manifest.caching.config.conf
+EOF
+    cat <<EOF >>/etc/nginx/nginx.manifest.caching.config.conf
     # Default tier caching for manifests. Caches for ${MANIFEST_CACHE_DEFAULT_TIME} (from MANIFEST_CACHE_DEFAULT_TIME)
     location ~ ^/v2/(.*)/manifests/ {
         set \$docker_proxy_request_type "manifest-default";
         proxy_cache_valid ${MANIFEST_CACHE_DEFAULT_TIME};
         include "/etc/nginx/nginx.manifest.stale.conf";
     }
-EOD
-
-[[ "a${ENABLE_MANIFEST_CACHE}" != "atrue" ]] && cat <<EOD >>/etc/nginx/nginx.manifest.caching.config.conf
+EOF
+else
+    cat <<EOF >>/etc/nginx/nginx.manifest.caching.config.conf
     # Manifest caching is disabled. Enable it with ENABLE_MANIFEST_CACHE=true
     location ~ ^/v2/(.*)/manifests/ {
         set \$docker_proxy_request_type "manifest-default-disabled";
         proxy_cache_valid 0s;
         include "/etc/nginx/nginx.manifest.stale.conf";
     }
-EOD
+EOF
+fi
 
 echo -e "\nManifest caching config: ---\n"
 cat /etc/nginx/nginx.manifest.caching.config.conf
 echo "---"
 
-if [[ "a${ALLOW_PUSH}" == "atrue" ]]; then
+echo -n "" > /etc/nginx/conf.d/allowed_override_auth.conf
+if [ "${ALLOW_OWN_AUTH}" = "true" ]; then
+    cat <<'EOF' > /etc/nginx/conf.d/allowed_override_auth.conf
+    if ($http_authorization != "") {
+        # override with own authentication if provided
+        set $finalAuth $http_authorization;
+    }
+EOF
+fi
+
+if [ "${ALLOW_PUSH}" = "true" ]; then
     cat <<EOF > /etc/nginx/conf.d/allowed.methods.conf
+    # allow to upload big layers
+    client_max_body_size 0;
+
+    # only cache GET requests
+    proxy_cache_methods GET;
+EOF
+elif [ "${ALLOW_PUSH_WITH_OWN_AUTH}" = "true" ]; then
+    cat <<'EOF' > /etc/nginx/conf.d/allowed.methods.conf
+    # Block POST/PUT/DELETE if own authentication is not provided.
+    set $combined_ha_rm "$http_authorization$request_method";
+    if ($combined_ha_rm = POST) {
+        return 405 "POST method is not allowed";
+    }
+    if ($combined_ha_rm = PUT) {
+        return 405 "PUT method is not allowed";
+    }
+    if ($combined_ha_rm = DELETE) {
+        return 405  "DELETE method is not allowed";
+    }
+
+    if ($http_authorization != "") {
+        # override with own authentication if provided
+        set $finalAuth $http_authorization;
+    }
+
     # allow to upload big layers
     client_max_body_size 0;
 
@@ -163,8 +195,8 @@ fi
 # normally use non-debug version of nginx
 NGINX_BIN="/usr/sbin/nginx"
 
-if [[ "a${DEBUG}" == "atrue" ]]; then
-  if [[ ! -f /usr/bin/mitmweb ]]; then
+if [ "${DEBUG}" = "true" ]; then
+  if [ ! -f /usr/bin/mitmweb ]; then
     echo "To debug, you need the -debug version of this image, eg: :latest-debug"
     exit 3
   fi
@@ -182,8 +214,8 @@ if [[ "a${DEBUG}" == "atrue" ]]; then
   echo "Access mitmweb via http://127.0.0.1:8081/ "
 fi
 
-if [[ "a${DEBUG_HUB}" == "atrue" ]]; then
-  if [[ ! -f /usr/bin/mitmweb ]]; then
+if [ "${DEBUG_HUB}" = "true" ]; then
+  if [ ! -f /usr/bin/mitmweb ]; then
     echo "To debug, you need the -debug version of this image, eg: :latest-debug"
     exit 3
   fi
@@ -205,8 +237,8 @@ if [[ "a${DEBUG_HUB}" == "atrue" ]]; then
   echo "Access mitmweb for outgoing DockerHub requests via http://127.0.0.1:8082/ "
 fi
 
-if [[ "a${DEBUG_NGINX}" == "atrue" ]]; then
-  if [[ ! -f /usr/sbin/nginx-debug ]]; then
+if [ "${DEBUG_NGINX}" = "true" ]; then
+  if [ ! -f /usr/sbin/nginx-debug ]; then
     echo "To debug, you need the -debug version of this image, eg: :latest-debug"
     exit 4
   fi
@@ -219,8 +251,8 @@ fi
 
 
 # Timeout configurations
-echo "" > /etc/nginx/nginx.timeouts.config.conf
-cat <<EOD >>/etc/nginx/nginx.timeouts.config.conf
+echo -n "" > /etc/nginx/nginx.timeouts.config.conf
+cat <<EOF >>/etc/nginx/nginx.timeouts.config.conf
   # Timeouts
 
   # ngx_http_core_module
@@ -238,23 +270,23 @@ cat <<EOD >>/etc/nginx/nginx.timeouts.config.conf
   proxy_connect_read_timeout ${PROXY_CONNECT_READ_TIMEOUT};
   proxy_connect_connect_timeout ${PROXY_CONNECT_CONNECT_TIMEOUT};
   proxy_connect_send_timeout ${PROXY_CONNECT_SEND_TIMEOUT};
-EOD
+EOF
 
 echo -e "\nTimeout configs: ---"
 cat /etc/nginx/nginx.timeouts.config.conf
 echo -e "---\n"
 
 # Upstream SSL verification.
-echo "" > /etc/nginx/docker.verify.ssl.conf
-if [[ "a${VERIFY_SSL}" == "atrue" ]]; then
-    cat << EOD > /etc/nginx/docker.verify.ssl.conf
+echo -n "" > /etc/nginx/docker.verify.ssl.conf
+if [ "${VERIFY_SSL}" = "true" ]; then
+    cat <<EOF > /etc/nginx/docker.verify.ssl.conf
     # We actually wanna be secure and avoid mitm attacks.
     # Fitting, since this whole thing is a mitm...
     # We'll accept any cert signed by a CA trusted by Mozilla (ca-certificates-bundle in alpine)
     proxy_ssl_verify on;
     proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
     proxy_ssl_verify_depth 2;
-EOD
+EOF
     echo "Upstream SSL certificate verification enabled."
 else
     echo "Upstream SSL certificate verification is DISABLED."

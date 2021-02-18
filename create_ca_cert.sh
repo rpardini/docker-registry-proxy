@@ -2,8 +2,6 @@
 
 set -Eeuo pipefail
 
-declare -i DEBUG=0
-
 logInfo() {
     echo "INFO: $@"
 }
@@ -53,10 +51,10 @@ subjectKeyIdentifier = hash
 EOF
 )
 
-    [[ ${DEBUG} -gt 0 ]] && logInfo "show the CA cert details"
-    [[ ${DEBUG} -gt 0 ]] && openssl x509 -noout -text -in ${CA_CRT_FILE}
+    [ "${DEBUG_CA_CERT}" = "true" ] && logInfo "show the CA cert details"
+    [ "${DEBUG_CA_CERT}" = "true" ] && openssl x509 -noout -text -in ${CA_CRT_FILE}
 
-    echo 01 > ${CA_SRL_FILE}
+    echo "01" > ${CA_SRL_FILE}
 
 fi
 
@@ -78,8 +76,8 @@ subjectKeyIdentifier = hash
 EOF
 )
 
-[[ ${DEBUG} -gt 0 ]] && logInfo "Show the singing request, to make sure extensions are there"
-[[ ${DEBUG} -gt 0 ]] && openssl req -in ia.csr -noout -text
+[ "${DEBUG_CA_CERT}" = "true" ] && logInfo "Show the singing request, to make sure extensions are there"
+[ "${DEBUG_CA_CERT}" = "true" ] && openssl req -in ia.csr -noout -text
 
 logInfo "Sign the IA request with the CA cert and key, producing the IA cert"
 openssl x509 -req -days 730 -in ia.csr -CA ${CA_CRT_FILE} -CAkey ${CA_KEY_FILE} -CAserial ${CA_SRL_FILE} -out ia.crt -passin pass:foobar -extensions IA -extfile <(
@@ -95,8 +93,8 @@ EOF
 ) &> /dev/null
 
 
-[[ ${DEBUG} -gt 0 ]] && logInfo "show the IA cert details"
-[[ ${DEBUG} -gt 0 ]] && openssl x509 -noout -text -in ia.crt
+[ "${DEBUG_CA_CERT}" = "true" ] && logInfo "show the IA cert details"
+[ "${DEBUG_CA_CERT}" = "true" ] && openssl x509 -noout -text -in ia.crt
 
 logInfo "Initialize the serial number for signed certificates"
 echo 01 > ia.srl
@@ -108,14 +106,14 @@ openssl rsa -passin pass:foobar -in web.orig.key -out web.key  &> /dev/null
 logInfo "Create the signing request, using extensions"
 openssl req -new -key web.key -sha256 -out web.csr -passin pass:foobar -subj "/C=NL/ST=Noord Holland/L=Amsterdam/O=ME/OU=IT/CN=${CN_WEB}" -reqexts SAN -config <(cat <(printf "[req]\ndistinguished_name = dn\n[dn]\n[SAN]\nsubjectAltName=${ALLDOMAINS}"))
 
-[[ ${DEBUG} -gt 0 ]] && logInfo "Show the singing request, to make sure extensions are there"
-[[ ${DEBUG} -gt 0 ]] && openssl req -in web.csr -noout -text
+[ "${DEBUG_CA_CERT}" = "true" ] && logInfo "Show the singing request, to make sure extensions are there"
+[ "${DEBUG_CA_CERT}" = "true" ] && openssl req -in web.csr -noout -text
 
 logInfo "Sign the request, using the intermediate cert and key"
 openssl x509 -req -days 365 -in web.csr -CA ia.crt -CAkey ia.key -out web.crt -passin pass:foobar -extensions SAN -extfile <(cat <(printf "[req]\ndistinguished_name = dn\n[dn]\n[SAN]\nsubjectAltName=${ALLDOMAINS}"))  &> /dev/null
 
-[[ ${DEBUG} -gt 0 ]] && logInfo "Show the final cert details"
-[[ ${DEBUG} -gt 0 ]] && openssl x509 -noout -text -in web.crt
+[ "${DEBUG_CA_CERT}" = "true" ] && logInfo "Show the final cert details"
+[ "${DEBUG_CA_CERT}" = "true" ] && openssl x509 -noout -text -in web.crt
 
 logInfo "Concatenating fullchain.pem..."
 cat web.crt ia.crt ${CA_CRT_FILE}  > fullchain.pem

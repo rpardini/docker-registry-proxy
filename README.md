@@ -79,7 +79,9 @@ for this to work it requires inserting a root CA certificate into system trusted
 - Expose port 3128 to the network
 - Map volume `/docker_mirror_cache` for up to `CACHE_MAX_SIZE` (32gb by default) of cached images across all cached registries
 - Map volume `/ca`, the proxy will store the CA certificate here across restarts. **Important** this is security sensitive.
-- Env `ALLOW_PUSH` : This bypasses the proxy when pushing, default to false - if kept to false, pushing will not work. For more info see this [commit](https://github.com/rpardini/docker-registry-proxy/commit/536f0fc8a078d03755f1ae8edc19a86fc4b37fcf).
+- Env `ALLOW_OWN_AUTH` (default `false`): Allow overridding the `AUTH_REGISTRIES` authentication with own Docker credentials if provided (to support `docker login` as another user).
+- Env `ALLOW_PUSH` (default `false`): This bypasses the proxy when pushing, default to false - if kept to false, pushing will not work. For more info see this [commit](https://github.com/rpardini/docker-registry-proxy/commit/536f0fc8a078d03755f1ae8edc19a86fc4b37fcf).
+- Env `ALLOW_PUSH_WITH_OWN_AUTH` (default `false`): Allow bypassing the proxy when pushing only if own authentication is provided.
 - Env `CACHE_MAX_SIZE` (default `32g`): set the max size to be used for caching local Docker image layers. Use [Nginx sizes](http://nginx.org/en/docs/syntax.html).
 - Env `ENABLE_MANIFEST_CACHE`, see the section on pull rate limiting.
 - Env `REGISTRIES`: space separated list of registries to cache; no need to include DockerHub, its already done internally.
