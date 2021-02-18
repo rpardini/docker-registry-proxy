@@ -36,7 +36,7 @@ ALLDOMAINS=""
 echo -n "" > /etc/nginx/docker.intercept.map
 
 # Some hosts/registries are always needed, but others can be configured in env var REGISTRIES
-for ONEREGISTRYIN in docker.caching.proxy.internal registry-1.docker.io auth.docker.io ${REGISTRIES}; do
+for ONEREGISTRYIN in ${REGISTRIES}; do
     ONEREGISTRY=$(echo ${ONEREGISTRYIN} | xargs) # Remove whitespace
     echo "Adding certificate for registry: $ONEREGISTRY"
     ALLDOMAINS="${ALLDOMAINS},DNS:${ONEREGISTRY}"
@@ -86,9 +86,6 @@ fi
 # create default config for the caching layer to listen on 443.
 echo "        listen 443 ssl default_server;" > /etc/nginx/caching.layer.listen
 echo "error_log  /var/log/nginx/error.log warn;" > /etc/nginx/error.log.debug.warn
-
-# Set Docker Registry cache size, by default, 32 GB ('32g')
-CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
 
 # The cache directory. This can get huge. Better to use a Docker volume pointing here!
 # Set to 32gb which should be enough

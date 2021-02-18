@@ -13,7 +13,7 @@ LABEL org.opencontainers.image.source https://github.com/rpardini/docker-registr
 RUN apk add --no-cache --update bash ca-certificates-bundle coreutils openssl
 
 # If set to 1, enables building mitmproxy, which helps a lot in debugging, but is super heavy to build.
-ARG DEBUG_BUILD="1"
+ARG DEBUG_BUILD="0"
 ENV DO_DEBUG_BUILD="$DEBUG_BUILD"
 
 # Build mitmproxy via pip. This is heavy, takes minutes do build and creates a 90mb+ layer. Oh well.
@@ -60,9 +60,10 @@ EXPOSE 8082
 
 ## Default envs.
 # A space delimited list of registries we should proxy and cache; this is in addition to the central DockerHub.
-ENV REGISTRIES="k8s.gcr.io gcr.io quay.io"
+ENV REGISTRIES="docker.caching.proxy.internal registry-1.docker.io auth.docker.io k8s.gcr.io gcr.io quay.io gitlab.com"
 # A space delimited list of registry:user:password to inject authentication for
-ENV AUTH_REGISTRIES="some.authenticated.registry:oneuser:onepassword another.registry:user:password"
+# (e.g. AUTH_REGISTRIES="auth.docker.io:dhuser:dhpass gitlab.com:gluser:glpass")
+ENV AUTH_REGISTRIES=""
 # Should we verify upstream's certificates? Default to true.
 ENV VERIFY_SSL="true"
 # Enable debugging mode; this inserts mitmproxy/mitmweb between the CONNECT proxy and the caching layer
@@ -71,6 +72,9 @@ ENV DEBUG="false"
 ENV DEBUG_HUB="false"
 # Enable nginx debugging mode; this uses nginx-debug binary and enabled debug logging, which is VERY verbose so separate setting
 ENV DEBUG_NGINX="false"
+
+# Set Docker Registry cache size, by default, 32 GB ('32g')
+ENV CACHE_MAX_SIZE="32g"
 
 # Manifest caching tiers. Disabled by default, to mimick 0.4/0.5 behaviour.
 # Setting it to true enables the processing of the ENVs below.
