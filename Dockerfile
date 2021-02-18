@@ -60,7 +60,7 @@ EXPOSE 8082
 
 ## Default envs.
 # A space delimited list of registries we should proxy and cache; this is in addition to the central DockerHub.
-ENV REGISTRIES="docker.caching.proxy.internal registry-1.docker.io auth.docker.io k8s.gcr.io gcr.io quay.io gitlab.com"
+ENV REGISTRIES="auth.docker.io registry-1.docker.io docker.caching.proxy.internal k8s.gcr.io gcr.io quay.io gitlab.com registry.gitlab.com"
 # A space delimited list of registry:user:password to inject authentication for
 # (e.g. AUTH_REGISTRIES="auth.docker.io:dhuser:dhpass gitlab.com:gluser:glpass")
 ENV AUTH_REGISTRIES=""
