@@ -53,7 +53,7 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64
-          tags: rpardini/docker-registry-proxy:latest,ghcr.io/rpardini/docker-registry-proxy:latest
+          tags: sktdev/docker-registry-proxy:latest,ghcr.io/openinfradev/docker-registry-proxy:latest
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache/release
           cache-to: type=local,mode=max,dest=/tmp/.buildx-cache/release
@@ -68,7 +68,7 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64
-          tags: rpardini/docker-registry-proxy:latest-debug,ghcr.io/rpardini/docker-registry-proxy:latest-debug
+          tags: sktdev/docker-registry-proxy:latest-debug,ghcr.io/openinfradev/docker-registry-proxy:latest-debug
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache/debug
           cache-to: type=local,mode=max,dest=/tmp/.buildx-cache/debug

@@ -66,7 +66,7 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64
-          tags: rpardini/docker-registry-proxy:${{ steps.get_version.outputs.version }},ghcr.io/rpardini/docker-registry-proxy:${{ steps.get_version.outputs.version }}
+          tags: sktdev/docker-registry-proxy:${{ steps.get_version.outputs.version }},ghcr.io/openinfradev/docker-registry-proxy:${{ steps.get_version.outputs.version }}
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache/release
           # first run does not export the cache
@@ -81,7 +81,7 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64
-          tags: rpardini/docker-registry-proxy:${{ steps.get_version.outputs.version }}-debug,ghcr.io/rpardini/docker-registry-proxy:${{ steps.get_version.outputs.version }}-debug
+          tags: sktdev/docker-registry-proxy:${{ steps.get_version.outputs.version }}-debug,ghcr.io/openinfradev/docker-registry-proxy:${{ steps.get_version.outputs.version }}-debug
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache/debug
           # first run does not export the cache
@@ -98,7 +98,7 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/arm64,linux/amd64
-          tags: rpardini/docker-registry-proxy:${{ steps.get_version.outputs.version }},ghcr.io/rpardini/docker-registry-proxy:${{ steps.get_version.outputs.version }}
+          tags: sktdev/docker-registry-proxy:${{ steps.get_version.outputs.version }},ghcr.io/openinfradev/docker-registry-proxy:${{ steps.get_version.outputs.version }}
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache/release
           cache-to: type=local,mode=max,dest=/tmp/.buildx-cache/release
@@ -113,7 +113,7 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/arm64,linux/amd64
-          tags: rpardini/docker-registry-proxy:${{ steps.get_version.outputs.version }}-debug,ghcr.io/rpardini/docker-registry-proxy:${{ steps.get_version.outputs.version }}-debug
+          tags: sktdev/docker-registry-proxy:${{ steps.get_version.outputs.version }}-debug,ghcr.io/openinfradev/docker-registry-proxy:${{ steps.get_version.outputs.version }}-debug
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache/debug
           cache-to: type=local,mode=max,dest=/tmp/.buildx-cache/debug
