@@ -7,7 +7,7 @@ ARG BASE_IMAGE_SUFFIX=""
 FROM ${BASE_IMAGE}${BASE_IMAGE_SUFFIX}
 
 # Link image to original repository on GitHub
-LABEL org.opencontainers.image.source https://github.com/rpardini/docker-registry-proxy
+LABEL org.opencontainers.image.source https://github.com/openinfradev/docker-registry-proxy
 
 # apk packages that will be present in the final image both debug and release
 RUN apk add --no-cache --update bash ca-certificates-bundle coreutils openssl

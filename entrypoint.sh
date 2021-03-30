@@ -92,7 +92,7 @@ CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
 
 # The cache directory. This can get huge. Better to use a Docker volume pointing here!
 # Set to 32gb which should be enough
-echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE inactive=60d keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/cache_max_size.conf
+echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE inactive=3650d keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/cache_max_size.conf
 
 # Manifest caching configuration. We generate config based on the environment vars.
 echo -n "" >/etc/nginx/nginx.manifest.caching.config.conf
