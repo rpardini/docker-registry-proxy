@@ -20,7 +20,7 @@ done
 
 echo "Final chosen resolver: $conf"
 confpath=/etc/nginx/resolvers.conf
-if [ ! -e $confpath ] || [ "$conf" != "$(cat $confpath)" ]
+if [ ! -e $confpath ]
 then
     echo "Using auto-determined resolver '$conf' via '$confpath'"
     echo "$conf" > $confpath
