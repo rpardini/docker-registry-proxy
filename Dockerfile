@@ -92,7 +92,7 @@ ENV MANIFEST_CACHE_SECONDARY_TIME="60d"
 
 # The default cache duration for manifests that don't match either the primary or secondary tiers above.
 # In the default config, :latest and other frequently-used tags will get this value.
-ENV MANIFEST_CACHE_DEFAULT_TIME="1h"
+ENV MANIFEST_CACHE_DEFAULT_TIME="1m"
 
 # Should we allow actions different than pull, default to false.
 ENV ALLOW_PUSH="false"

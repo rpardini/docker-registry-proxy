@@ -2,7 +2,11 @@ name: master-latest
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
+  pull_reuqest:
+    branches:
+      - master
 
 jobs:
   multiarch-to-dockerhub-latest:
