@@ -1,10 +1,20 @@
 #! /bin/bash
 
+echo "Entrypoint starting."
+
 set -Eeuo pipefail
 trap "echo TRAPed signal" HUP INT QUIT TERM
 
-#configure nginx DNS settings to match host, why must we do that nginx?
-export RESOLVERS=$(awk '$1 == "nameserver" {print ($2 ~ ":")? "["$2"]": $2}' ORS=' ' /etc/resolv.conf | sed 's/ *$//g')
+# configure nginx DNS settings to match host, why must we do that nginx?
+# this leads to a world of problems. ipv6 format being different, etc.
+# below is a collection of hacks contributed over the years.
+
+echo "-- resolv.conf:"
+cat /etc/resolv.conf
+echo "-- end resolv"
+
+# Podman adds a "%3" to the end of the last resolver? I don't get it. Strip it out.
+export RESOLVERS=$(cat /etc/resolv.conf | sed -e 's/%3//g' | awk '$1 == "nameserver" {print ($2 ~ ":")? "["$2"]": $2}' ORS=' ' | sed 's/ *$//g')
 if [ "x$RESOLVERS" = "x" ]; then
     echo "Warning: unable to determine DNS resolvers for nginx" >&2
     exit 66
