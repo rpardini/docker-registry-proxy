@@ -41,7 +41,7 @@ else
     openssl genrsa -des3 -passout pass:foobar -out ${CA_KEY_FILE} 4096
 
     logInfo "generate CA cert with key and self sign it: ${CAID}"
-    openssl req -new -x509 -days 1300 -sha256 -key ${CA_KEY_FILE} -out ${CA_CRT_FILE} -passin pass:foobar -subj "/C=NL/ST=Noord Holland/L=Amsterdam/O=ME/OU=IT/CN=${CN_CA}" -extensions IA -config <(
+    openssl req -new -x509 -days 3650 -sha256 -key ${CA_KEY_FILE} -out ${CA_CRT_FILE} -passin pass:foobar -subj "/C=NL/ST=Noord Holland/L=Amsterdam/O=ME/OU=IT/CN=${CN_CA}" -extensions IA -config <(
 cat <<-EOF
 [req]
 distinguished_name = dn
@@ -82,7 +82,7 @@ EOF
 [[ ${DEBUG} -gt 0 ]] && openssl req -in ia.csr -noout -text
 
 logInfo "Sign the IA request with the CA cert and key, producing the IA cert"
-openssl x509 -req -days 730 -in ia.csr -CA ${CA_CRT_FILE} -CAkey ${CA_KEY_FILE} -CAserial ${CA_SRL_FILE} -out ia.crt -passin pass:foobar -extensions IA -extfile <(
+openssl x509 -req -days 3650 -in ia.csr -CA ${CA_CRT_FILE} -CAkey ${CA_KEY_FILE} -CAserial ${CA_SRL_FILE} -out ia.crt -passin pass:foobar -extensions IA -extfile <(
 cat <<-EOF
 [req]
 distinguished_name = dn
@@ -112,7 +112,7 @@ openssl req -new -key web.key -sha256 -out web.csr -passin pass:foobar -subj "/C
 [[ ${DEBUG} -gt 0 ]] && openssl req -in web.csr -noout -text
 
 logInfo "Sign the request, using the intermediate cert and key"
-openssl x509 -req -days 365 -in web.csr -CA ia.crt -CAkey ia.key -out web.crt -passin pass:foobar -extensions SAN -extfile <(cat <(printf "[req]\ndistinguished_name = dn\n[dn]\n[SAN]\nsubjectAltName=${ALLDOMAINS}"))  &> /dev/null
+openssl x509 -req -days 3650 -in web.csr -CA ia.crt -CAkey ia.key -out web.crt -passin pass:foobar -extensions SAN -extfile <(cat <(printf "[req]\ndistinguished_name = dn\n[dn]\n[SAN]\nsubjectAltName=${ALLDOMAINS}"))  &> /dev/null
 
 [[ ${DEBUG} -gt 0 ]] && logInfo "Show the final cert details"
 [[ ${DEBUG} -gt 0 ]] && openssl x509 -noout -text -in web.crt

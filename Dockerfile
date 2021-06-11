@@ -82,17 +82,17 @@ ENV ENABLE_MANIFEST_CACHE="false"
 # - People publishing to production via :latest (argh) will want to include that in the regex
 # - Heavy pullers who are being ratelimited but don't mind getting outdated manifests should (also) increase the cache time here
 ENV MANIFEST_CACHE_PRIMARY_REGEX="(stable|nightly|production|test)"
-ENV MANIFEST_CACHE_PRIMARY_TIME="10m"
+ENV MANIFEST_CACHE_PRIMARY_TIME="10y"
 
 # 'Secondary' tier defaults any tag that has 3 digits or dots, in the hopes of matching most explicitly-versioned tags.
 # It caches for 60d, which is also the cache time for the large binary blobs to which the manifests refer.
 # That makes them effectively immutable. Make sure you're not affected; tighten this regex or widen the primary tier.
 ENV MANIFEST_CACHE_SECONDARY_REGEX="(.*)(\d|\.)+(.*)(\d|\.)+(.*)(\d|\.)+"
-ENV MANIFEST_CACHE_SECONDARY_TIME="60d"
+ENV MANIFEST_CACHE_SECONDARY_TIME="10y"
 
 # The default cache duration for manifests that don't match either the primary or secondary tiers above.
 # In the default config, :latest and other frequently-used tags will get this value.
-ENV MANIFEST_CACHE_DEFAULT_TIME="1h"
+ENV MANIFEST_CACHE_DEFAULT_TIME="10y"
 
 # Should we allow actions different than pull, default to false.
 ENV ALLOW_PUSH="false"
