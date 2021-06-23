@@ -36,7 +36,7 @@
 
    1. Copy the certificate into WSL and import it
 
-      Note: The directory and the command below are for the _docker-desktop_ WSL distribution. On other systems you might need to tweak the commands a little, but they to be the same for [Ubuntu](https://www.pmichaels.net/2020/12/29/add-certificate-into-wsl/) and [Debian](https://github.com/microsoft/WSL/issues/3161#issue-320777324) as well.
+      Note: The directory and the command below are for the _docker-desktop_ WSL distribution. On other systems you might need to tweak the commands a little, but they seem to be the same for [Ubuntu](https://www.pmichaels.net/2020/12/29/add-certificate-into-wsl/) and [Debian](https://github.com/microsoft/WSL/issues/3161#issue-320777324) as well.
 
       ```
       XXXYYYZZZ:/tmp/docker-desktop-root/mnt/host/c# cp /mnt/host/d/ca.crt /usr/local/share/ca-certificates/
