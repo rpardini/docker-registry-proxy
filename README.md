@@ -256,9 +256,9 @@ docker run --rm --name docker_registry_proxy -it
 - If you authenticate to a private registry and pull through the proxy, those images will be served to any client that can reach the proxy, even without authentication. *beware*
 - Repeat, **this will make your private images very public if you're not careful**.
 - ~~**Currently you cannot push images while using the proxy** which is a shame. PRs welcome.~~ **SEE `ALLOW_PUSH` ENV FROM USAGE SECTION.**
-- Setting this on Linux is relatively easy. 
-  - On Mac and Windows the CA-certificate part will be very different but should work in principle.
-  - Please send PRs with instructions for Windows and Mac if you succeed!
+- Setting this on Linux is relatively easy.
+  - On Mac follow the instructions [here](Docker-for-Mac.md).
+  - On Windows follow the instructions [here](Docker-Desktop-Windows.md).
 
 ### Why not use Docker's own registry, which has a mirror feature?
 
@@ -280,7 +280,7 @@ Yeah. Docker Inc should do it. So should NPM, Inc. Wonder why they don't. 😼
 ### TODO:
 
 - [x] Basic Docker-for-Mac set-up instructions
-- [ ] Basic Docker-for-Windows set-up instructions. 
+- [x] Basic Docker-for-Windows set-up instructions. 
 - [ ] Test and make auth work with quay.io, unfortunately I don't have access to it (_hint, hint, quay_)
 - [x] Hide the mitmproxy building code under a Docker build ARG.
 - [ ] "Developer Office" proxy scenario, where many developers on a fast LAN share a proxy for bandwidth and speed savings (already works for pulls, but messes up pushes, which developers tend to use a lot)
