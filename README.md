@@ -176,6 +176,41 @@ docker run --rm --name docker_registry_proxy -it \
        rpardini/docker-registry-proxy:0.6.2
 ```
 
+### Kind Cluster
+
+[Kind](https://github.com/kubernetes-sigs/kind/) is a tool for running local Kubernetes clusters using Docker container “nodes”.
+
+Because cluster nodes are Docker containers, docker-registry-proxy needs to be in the same docker network.
+
+Example joining the _kind_ docker network and using hostname _docker-registry-proxy_ as hostname :
+
+```bash
+docker run --rm --name docker_registry_proxy -it \
+       --net kind --hostname docker-registry-proxy \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
+       -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
+       -v $(pwd)/docker_mirror_certs:/ca \
+       rpardini/docker-registry-proxy:0.6.2
+```
+
+Now deploy your Kind cluster and then automatically configure the nodes with the following script :
+
+```bash
+#!/bin/sh
+KIND_NAME=${1-kind}
+SETUP_URL=http://docker-registry-proxy:3128/setup/systemd
+pids=""
+for NODE in $(kind get nodes --name "$KIND_NAME"); do
+  docker exec "$NODE" sh -c "\
+      curl $SETUP_URL \
+      | sed s/docker\.service/containerd\.service/g \
+      | sed '/Environment/ s/$/ \"NO_PROXY=127.0.0.0\/8,10.0.0.0\/8,172.16.0.0\/12,192.168.0.0\/16\"/' \
+      | bash" & pids="$pids $!" # Configure every node in background
+done
+wait $pids # Wait for all configurations to end
+```
+
+
 ## Configuring the Docker clients using Docker Desktop for Mac
 
 Separate instructions for Mac clients available in [this dedicated Doc Desktop for Mac document](Docker-for-Mac.md).
