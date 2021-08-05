@@ -1,0 +1,8 @@
+- name: Get the CA certificate from the proxy and make it a trusted root.
+  get_url:
+    url: http://{{ docker_proxy_url }}:3128/ca.crt
+    dest: /usr/share/ca-certificates/docker_registry_proxy.crt
+    mode: '0644'
+
+- name: update trusted ca
+  shell: /usr/sbin/update-ca-certificates --fresh
