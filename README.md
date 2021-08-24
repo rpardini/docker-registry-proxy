@@ -261,6 +261,20 @@ EOF
 k3d cluster create --config /etc/k3d-proxy-config.yaml
 ```
 
+### Custom nginx resolvers configuration
+
+By default, the proxy uses one of the host's DNS servers as a resolver for nginx.
+If you want to use your custom configuration for the nginx resolvers, you can do it by creating your own resolvers.conf file and mount it to `/etc/nginx/resolvers.conf`.
+
+For example, If you want to use Google's DNS servers and disable IPv6:
+1. Create this resolvers.conf file:
+```
+resolver 8.8.8.8 8.8.4.4 ipv6=off;
+```
+2.  And add to the docker run command `-v /path/of/your/resolvers.conf:/etc/nginx/resolvers.conf`.
+
+The resolvers syntax and options are available on nginx docs: http://nginx.org/en/docs/http/ngx_http_core_module.html#resolver
+
 ## Configuring the Docker clients using Docker Desktop for Mac
 
 Separate instructions for Mac clients available in [this dedicated Doc Desktop for Mac document](Docker-for-Mac.md).
