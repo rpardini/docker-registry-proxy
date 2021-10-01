@@ -210,6 +210,51 @@ done
 wait $pids # Wait for all configurations to end
 ```
 
+### K3D Cluster
+
+[K3d](https://k3d.io/) is similar to Kind but is based on k3s. In order to run with its registry you need to setup settings like shown below.
+
+```sh
+# docker-registry-proxy
+docker run -d --name registry-proxy --restart=always \
+-v /tmp/registry-proxy/mirror_cache:/docker_mirror_cache \
+-v /tmp/registry-proxy/certs:/ca \
+rpardini/docker-registry-proxy:0.6.4 
+
+# k3d
+k3d cluster create
+--registry-config registries.yaml \
+--env HTTPS_PROXY=http://registry-proxy:3128/@server[*] \
+--volume "/tmp/registry-proxy/certs:/etc/ssl/certs"
+```
+
+In your registries.yaml
+
+```yaml
+mirrors:
+  registry-proxy:3128:
+    endpoint:
+      - https://registry-proxy:3128
+  docker.io:
+    endpoint:
+      - https://registry-proxy:3128
+  quay.io:
+    endpoint:
+      - https://registry-proxy:3128
+  ghcr.io:
+    endpoint:
+      - https://registry-proxy:3128
+  gitlab.com:
+    endpoint:
+      - https://registry-proxy:3128
+  registry.opensource.zalan.do:
+    endpoint:
+      - https://registry-proxy:3128
+configs:
+  registry-proxy:
+    tls:
+      ca_file: /etc/ssl/certs/ca.crt
+```
 
 ## Configuring the Docker clients using Docker Desktop for Mac
 
