@@ -5,12 +5,13 @@ ARG BASE_IMAGE="docker.io/rpardini/nginx-proxy-connect-stable-alpine:nginx-1.20.
 # Could be "-debug"
 ARG BASE_IMAGE_SUFFIX=""
 FROM ${BASE_IMAGE}${BASE_IMAGE_SUFFIX}
-
+ENV TINI_VERSION v0.19.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
 # Link image to original repository on GitHub
 LABEL org.opencontainers.image.source https://github.com/rpardini/docker-registry-proxy
 
 # apk packages that will be present in the final image both debug and release
-RUN apk add --no-cache --update bash ca-certificates-bundle coreutils openssl
+RUN apk add --no-cache --update bash ca-certificates-bundle coreutils openssl && chmod +x /tini
 
 # If set to 1, enables building mitmproxy, which helps a lot in debugging, but is super heavy to build.
 ARG DEBUG_BUILD="1"
@@ -113,4 +114,5 @@ ENV PROXY_CONNECT_CONNECT_TIMEOUT="60s"
 ENV PROXY_CONNECT_SEND_TIMEOUT="60s"
 
 # Did you want a shell? Sorry, the entrypoint never returns, because it runs nginx itself. Use 'docker exec' if you need to mess around internally.
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/tini", "--"]
+CMD ["/entrypoint.sh"]
