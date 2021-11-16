@@ -87,6 +87,7 @@ for this to work it requires inserting a root CA certificate into system trusted
   - `hostname`s listed here should be listed in the REGISTRIES environment as well, so they can be intercepted.
 - Env `AUTH_REGISTRIES_DELIMITER` to change the separator between authentication info. By default, a space: "` `". If you use keys that contain spaces (as with Google Cloud Registry), you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=";;;"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:user1:pass1;;;registry2.com:user2:pass2`.
 - Env `AUTH_REGISTRY_DELIMITER` to change the separator between authentication info *parts*. By default, a colon: "`:`". If you use keys that contain single colons, you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=":::"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:::user1:::pass1 registry2.com:::user2:::pass2`.
+- Env `AUTH_REGISTRIES_RAW` to specify raw auth mapping for nginx auth.map configuration. Not mutually exclusive with `AUTH_REGISTRIES`.
 - Timeouts ENVS - all of them can pe specified to control different timeouts, and if not set, the defaults will be the ones from `Dockerfile`. The directives will be added into `http` block.:
   - SEND_TIMEOUT : see [send_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#send_timeout)
   - CLIENT_BODY_TIMEOUT : see [client_body_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_body_timeout)
@@ -150,6 +151,18 @@ docker run  --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="reg.example.com git.example.com" \
        -e AUTH_REGISTRIES="git.example.com:USER:PASSWORD" \
+       rpardini/docker-registry-proxy:0.6.2
+```
+
+or
+
+```bash
+docker run  --rm --name docker_registry_proxy -it \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
+       -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
+       -v $(pwd)/docker_mirror_certs:/ca \
+       -e REGISTRIES="gitlab.com gitlab.int.company.com" \
+       -e AUTH_REGISTRIES_RAW="\"gitlab.com\" \"$(base64 <<<"USER:PASSWORD")\"; \"gitlab.int.company.com\" \"VVNFUjpQQVNTV09SRAo=\"" \
        rpardini/docker-registry-proxy:0.6.2
 ```
 
