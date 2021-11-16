@@ -162,7 +162,7 @@ docker run  --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="gitlab.com gitlab.int.company.com" \
-       -e AUTH_REGISTRIES_RAW="\"gitlab.com\" \"$(base64 <<<"USER:PASSWORD")\"; \"gitlab.int.company.com\" \"VVNFUjpQQVNTV09SRAo=\"" \
+       -e AUTH_REGISTRIES_RAW="gitlab.com $(base64 <<<"USER:PASSWORD"); gitlab.int.company.com VVNFUjpQQVNTV09SRAo=" \
        rpardini/docker-registry-proxy:0.6.2
 ```
 
