@@ -219,41 +219,42 @@ wait $pids # Wait for all configurations to end
 docker run -d --name registry-proxy --restart=always \
 -v /tmp/registry-proxy/mirror_cache:/docker_mirror_cache \
 -v /tmp/registry-proxy/certs:/ca \
-rpardini/docker-registry-proxy:0.6.4 
+rpardini/docker-registry-proxy:0.6.4
 
-# k3d
-k3d cluster create
---registry-config registries.yaml \
---env HTTPS_PROXY=http://registry-proxy:3128/@server[*] \
---volume "/tmp/registry-proxy/certs:/etc/ssl/certs"
-```
+export PROXY_HOST=registry-proxy
+export PROXY_PORT=3128
+export NOPROXY_LIST="localhost,127.0.0.1,0.0.0.0,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.local,.svc"
 
-In your registries.yaml
+cat <<EOF > /etc/k3d-proxy-config.yaml
+apiVersion: k3d.io/v1alpha3
+kind: Simple
+name: mycluster
+servers: 1
+agents: 0
+options:
+    k3d:
+       wait: true
+       timeout: "60s"
+    kubeconfig:
+       updateDefaultKubeconfig: true
+       switchCurrentContext: true
+env:
+  - envVar: HTTP_PROXY=http://$PROXY_HOST:$PROXY_PORT
+    nodeFilters:
+      - all
+  - envVar: HTTPS_PROXY=http://$PROXY_HOST:$PROXY_PORT
+    nodeFilters:
+      - all
+  - envVar: NO_PROXY='$NOPROXY_LIST'
+    nodeFilters:
+      - all
+volumes:
+  - volume: $REGISTRY_DIR/docker_mirror_certs/ca.crt:/etc/ssl/certs/registry-proxy-ca.pem
+    nodeFilters:
+      - all
+EOF
 
-```yaml
-mirrors:
-  registry-proxy:3128:
-    endpoint:
-      - https://registry-proxy:3128
-  docker.io:
-    endpoint:
-      - https://registry-proxy:3128
-  quay.io:
-    endpoint:
-      - https://registry-proxy:3128
-  ghcr.io:
-    endpoint:
-      - https://registry-proxy:3128
-  gitlab.com:
-    endpoint:
-      - https://registry-proxy:3128
-  registry.opensource.zalan.do:
-    endpoint:
-      - https://registry-proxy:3128
-configs:
-  registry-proxy:
-    tls:
-      ca_file: /etc/ssl/certs/ca.crt
+k3d cluster create --config /etc/k3d-proxy-config.yaml
 ```
 
 ## Configuring the Docker clients using Docker Desktop for Mac
