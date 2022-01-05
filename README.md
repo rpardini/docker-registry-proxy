@@ -210,6 +210,52 @@ done
 wait $pids # Wait for all configurations to end
 ```
 
+### K3D Cluster
+
+[K3d](https://k3d.io/) is similar to Kind but is based on k3s. In order to run with its registry you need to setup settings like shown below.
+
+```sh
+# docker-registry-proxy
+docker run -d --name registry-proxy --restart=always \
+-v /tmp/registry-proxy/mirror_cache:/docker_mirror_cache \
+-v /tmp/registry-proxy/certs:/ca \
+rpardini/docker-registry-proxy:0.6.4
+
+export PROXY_HOST=registry-proxy
+export PROXY_PORT=3128
+export NOPROXY_LIST="localhost,127.0.0.1,0.0.0.0,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.local,.svc"
+
+cat <<EOF > /etc/k3d-proxy-config.yaml
+apiVersion: k3d.io/v1alpha3
+kind: Simple
+name: mycluster
+servers: 1
+agents: 0
+options:
+    k3d:
+       wait: true
+       timeout: "60s"
+    kubeconfig:
+       updateDefaultKubeconfig: true
+       switchCurrentContext: true
+env:
+  - envVar: HTTP_PROXY=http://$PROXY_HOST:$PROXY_PORT
+    nodeFilters:
+      - all
+  - envVar: HTTPS_PROXY=http://$PROXY_HOST:$PROXY_PORT
+    nodeFilters:
+      - all
+  - envVar: NO_PROXY='$NOPROXY_LIST'
+    nodeFilters:
+      - all
+volumes:
+  - volume: $REGISTRY_DIR/docker_mirror_certs/ca.crt:/etc/ssl/certs/registry-proxy-ca.pem
+    nodeFilters:
+      - all
+EOF
+
+k3d cluster create --config /etc/k3d-proxy-config.yaml
+```
 
 ## Configuring the Docker clients using Docker Desktop for Mac
 
