@@ -97,6 +97,11 @@ ENV MANIFEST_CACHE_DEFAULT_TIME="1h"
 # Should we allow actions different than pull, default to false.
 ENV ALLOW_PUSH="false"
 
+# If push is allowed, buffering requests can cause issues on slow upstreams.
+# If you have trouble pushing, set this to false first, then fix remainig timouts.
+# Default is true to not change default behavior.
+ENV PROXY_REQUEST_BUFFERING="true"
+
 # Timeouts
 # ngx_http_core_module
 ENV SEND_TIMEOUT="60s"
