@@ -90,7 +90,6 @@ for this to work it requires inserting a root CA certificate into system trusted
 - Env `PROXY_REQUEST_BUFFERING`: If push is allowed, buffering requests can cause issues on slow upstreams.
 If you have trouble pushing, set this to `false` first, then fix remainig timeouts.
 Default is `true` to not change default behavior.
-ENV PROXY_REQUEST_BUFFERING="true"
 - Timeouts ENVS - all of them can pe specified to control different timeouts, and if not set, the defaults will be the ones from `Dockerfile`. The directives will be added into `http` block.:
   - SEND_TIMEOUT : see [send_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#send_timeout)
   - CLIENT_BODY_TIMEOUT : see [client_body_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_body_timeout)
