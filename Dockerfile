@@ -102,6 +102,9 @@ ENV ALLOW_PUSH="false"
 # Default is true to not change default behavior.
 ENV PROXY_REQUEST_BUFFERING="true"
 
+# WARNING changing this setting invalidates your cache
+ENV CACHE_GREEDY_MODE="true"
+
 # Timeouts
 # ngx_http_core_module
 ENV SEND_TIMEOUT="60s"
