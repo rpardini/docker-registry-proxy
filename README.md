@@ -87,6 +87,10 @@ for this to work it requires inserting a root CA certificate into system trusted
   - `hostname`s listed here should be listed in the REGISTRIES environment as well, so they can be intercepted.
 - Env `AUTH_REGISTRIES_DELIMITER` to change the separator between authentication info. By default, a space: "` `". If you use keys that contain spaces (as with Google Cloud Registry), you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=";;;"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:user1:pass1;;;registry2.com:user2:pass2`.
 - Env `AUTH_REGISTRY_DELIMITER` to change the separator between authentication info *parts*. By default, a colon: "`:`". If you use keys that contain single colons, you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=":::"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:::user1:::pass1 registry2.com:::user2:::pass2`.
+- Env `PROXY_REQUEST_BUFFERING`: If push is allowed, buffering requests can cause issues on slow upstreams.
+If you have trouble pushing, set this to `false` first, then fix remainig timeouts.
+Default is `true` to not change default behavior.
+ENV PROXY_REQUEST_BUFFERING="true"
 - Timeouts ENVS - all of them can pe specified to control different timeouts, and if not set, the defaults will be the ones from `Dockerfile`. The directives will be added into `http` block.:
   - SEND_TIMEOUT : see [send_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#send_timeout)
   - CLIENT_BODY_TIMEOUT : see [client_body_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_body_timeout)
@@ -210,6 +214,52 @@ done
 wait $pids # Wait for all configurations to end
 ```
 
+### K3D Cluster
+
+[K3d](https://k3d.io/) is similar to Kind but is based on k3s. In order to run with its registry you need to setup settings like shown below.
+
+```sh
+# docker-registry-proxy
+docker run -d --name registry-proxy --restart=always \
+-v /tmp/registry-proxy/mirror_cache:/docker_mirror_cache \
+-v /tmp/registry-proxy/certs:/ca \
+rpardini/docker-registry-proxy:0.6.4
+
+export PROXY_HOST=registry-proxy
+export PROXY_PORT=3128
+export NOPROXY_LIST="localhost,127.0.0.1,0.0.0.0,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.local,.svc"
+
+cat <<EOF > /etc/k3d-proxy-config.yaml
+apiVersion: k3d.io/v1alpha3
+kind: Simple
+name: mycluster
+servers: 1
+agents: 0
+options:
+    k3d:
+       wait: true
+       timeout: "60s"
+    kubeconfig:
+       updateDefaultKubeconfig: true
+       switchCurrentContext: true
+env:
+  - envVar: HTTP_PROXY=http://$PROXY_HOST:$PROXY_PORT
+    nodeFilters:
+      - all
+  - envVar: HTTPS_PROXY=http://$PROXY_HOST:$PROXY_PORT
+    nodeFilters:
+      - all
+  - envVar: NO_PROXY='$NOPROXY_LIST'
+    nodeFilters:
+      - all
+volumes:
+  - volume: $REGISTRY_DIR/docker_mirror_certs/ca.crt:/etc/ssl/certs/registry-proxy-ca.pem
+    nodeFilters:
+      - all
+EOF
+
+k3d cluster create --config /etc/k3d-proxy-config.yaml
+```
 
 ## Configuring the Docker clients using Docker Desktop for Mac
 
