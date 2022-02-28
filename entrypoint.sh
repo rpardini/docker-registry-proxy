@@ -268,6 +268,20 @@ echo -e "\nRequest buffering: ---"
 cat /etc/nginx/proxy.request.buffering.conf
 echo -e "---\n"
 
+# force upstream to use http 1.1
+echo "" > /etc/nginx/http1.1.upstream.conf
+if [[ "a${FORCE_UPSTREAM_HTTP_1_1}" == "atrue" ]]; then
+  cat << EOD > /etc/nginx/http1.1.upstream.conf
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
+EOD
+fi
+
+echo -e "\nConfigure upstream http version support: ---"
+cat /etc/nginx/http1.1.upstream.conf
+echo -e "---\n"
+
 # Upstream SSL verification.
 echo "" > /etc/nginx/docker.verify.ssl.conf
 if [[ "a${VERIFY_SSL}" == "atrue" ]]; then
