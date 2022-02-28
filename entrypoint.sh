@@ -273,7 +273,7 @@ echo "" > /etc/nginx/http1.1.upstream.conf
 if [[ "a${FORCE_UPSTREAM_HTTP_1_1}" == "atrue" ]]; then
   cat << EOD > /etc/nginx/http1.1.upstream.conf
   proxy_http_version 1.1;
-  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Upgrade \$http_upgrade;
   proxy_set_header Connection "upgrade";
 EOD
 fi
