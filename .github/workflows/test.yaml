@@ -1,16 +1,16 @@
 name: test
 
 on:
-  workflow_dispatch:
-  pull_request:
-    branches:
-      - master
+  # workflow_dispatch:
+  # pull_request:
+  #   branches:
+  #     - master
+  push:
 
 jobs:
   sanity-check:
     runs-on: ubuntu-latest
     steps:
-
       - name: Get machine's first IPv4 address for eth0
         id: ip
         run: |
@@ -25,17 +25,7 @@ jobs:
 
       # We use buildx instead of regular build so we can take advantage of Docker layer cache via Github Actions' cache
       - name: Set up Docker Buildx
-        id: buildx
         uses: docker/setup-buildx-action@v1
-
-      # Setup the Github Actions cache.
-      - name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildxarch-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildxarch-
 
       - name: Build amd64 release image locally to Docker
         uses: docker/build-push-action@v2
@@ -43,38 +33,23 @@ jobs:
           build-args: |
             DEBUG_BUILD=0
             BASE_IMAGE_SUFFIX=
-          builder: ${{ steps.buildx.outputs.name }}
           context: .
-          file: ./Dockerfile
           platforms: linux/amd64
           tags: sanity-check/docker-registry-proxy:latest
-          push: false
           load: true
-          cache-from: type=local,src=/tmp/.buildx-cache/release
-          # this only reads from the cache
+          cache-from: type=gha
+          cache-to: type=gha,mode=max # this only reads from the cache
 
       - name: Start proxy instance in docker (ENABLE_MANIFEST_CACHE=false)
         run: |
-          docker run -d --rm --name docker_registry_proxy \
+          docker run -d --name docker_registry_proxy \
             -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=false \
             -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
             -v $(pwd)/docker_mirror_certs:/ca \
             sanity-check/docker-registry-proxy:latest
 
-      - name: Get the initial logs for the container into a file after 10s
-        run: |
-          echo "Sleeping 10s..."
-          sleep 10
-          docker logs docker_registry_proxy > initial_logs.txt
-
-      - name: Upload artifact initial_logs
-        uses: actions/upload-artifact@v2
-        with:
-          name: initial_logs
-          path: initial_logs.txt
-
       - name: Wait for container to be up
-        timeout-minutes: 1
+        timeout-minutes: 2
         run: |
           declare -i IS_UP=0
           while [[ $IS_UP -lt 1 ]]; do
@@ -84,14 +59,18 @@ jobs:
           done
           echo "Container is up..."
 
+      - name: Sleep to startup nginx
+        run: |
+          echo "Sleeping 10s..."
+          sleep 20
+
       - name: Grab the CA cert from running container via curl
         run: |
           curl http://${{ steps.ip.outputs.ETHER }}:3128/ca.crt | sudo tee /usr/share/ca-certificates/docker_registry_proxy.crt
 
       - name: Stop proxy instance in docker
-        timeout-minutes: 1
         run: |
-          timeout 58 docker stop docker_registry_proxy
+          docker rm -f docker_registry_proxy
 
       - name: Refresh system-wide CA store
         run: |
@@ -107,17 +86,14 @@ jobs:
           Environment="HTTPS_PROXY=http://${{ steps.ip.outputs.ETHER }}:3128/"
           EOD
 
-      - name: Reload systemd from disk
+      - name: Reload systemd from disk & dockerd via systemd
         run: |
           sudo systemctl daemon-reload
-
-      - name: Restart dockerd via systemd
-        run: |
           sudo systemctl restart docker.service
 
       - name: Start proxy instance in docker again (ENABLE_MANIFEST_CACHE=true)
         run: |
-          docker run -d --rm --name docker_registry_proxy \
+          docker run -d --name docker_registry_proxy \
             -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
             -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
             -v $(pwd)/docker_mirror_certs:/ca \
@@ -135,49 +111,27 @@ jobs:
           echo "Container is up again..."
 
       # This can be quite slow, since Github Actions runner Docker comes preloaded with a lot of images.
-      - name: Initial prune of all unused images from docker cache (slow)
-        timeout-minutes: 2
+      - name: Remove images
         run: |
-          docker image prune --all --force
+          docker rmi -f alpine:3.6
+          docker rmi -f k8s.gcr.io/pause:3.3
 
       - name: First round of pulls
-        timeout-minutes: 2
         run: |
           docker pull alpine:3.6
           docker pull k8s.gcr.io/pause:3.3
 
-      - name: Get the cold cache logs for the container into a file
+      - name: Remove images 2
         run: |
-          docker logs docker_registry_proxy > cold_cache.txt
-
-      - name: Upload artifact cold_cache
-        uses: actions/upload-artifact@v2
-        with:
-          name: cold_cache
-          path: cold_cache.txt
-
-      - name: prune all unused images from docker cache again
-        timeout-minutes: 1
-        run: |
-          docker image prune --all --force
+          docker rmi -f alpine:3.6
+          docker rmi -f k8s.gcr.io/pause:3.3
 
       - name: sleep 2s to allow cache to stale a bit
         run: |
           sleep 2
 
-      - name: Second round of pulls
-        timeout-minutes: 2
+      - name: Get the logs
+        if: ${{ always() }}
         run: |
-          docker pull alpine:3.6
-          docker pull k8s.gcr.io/pause:3.3
-
-      - name: Get the warm cache docker logs for the container into a file
-        run: |
-          docker logs docker_registry_proxy > warm_cache.txt
-
-      - name: Upload artifact warm_cache
-        uses: actions/upload-artifact@v2
-        with:
-          name: warm_cache
-          path: warm_cache.txt
-
+          docker logs docker_registry_proxy || true
+          docker ps -a
