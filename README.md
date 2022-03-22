@@ -102,6 +102,7 @@ ENV PROXY_REQUEST_BUFFERING="true"
   - PROXY_CONNECT_READ_TIMEOUT : see [proxy_connect_read_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_read_timeout)
   - PROXY_CONNECT_CONNECT_TIMEOUT : see [proxy_connect_connect_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_connect_timeout)
   - PROXY_CONNECT_SEND_TIMEOUT : see [proxy_connect_send_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_send_timeout))
+- Env `DISABLE_IPV6`: If set to `true`, prevents nginx from getting IPv6 addresses from the resolver without needing a [custom resolver config](#custom_nginx_resolvers_configuration)
 
 
 ### Simple (no auth, all cache)
