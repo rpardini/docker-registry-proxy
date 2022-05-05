@@ -87,6 +87,10 @@ for this to work it requires inserting a root CA certificate into system trusted
   - `hostname`s listed here should be listed in the REGISTRIES environment as well, so they can be intercepted.
 - Env `AUTH_REGISTRIES_DELIMITER` to change the separator between authentication info. By default, a space: "` `". If you use keys that contain spaces (as with Google Cloud Registry), you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=";;;"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:user1:pass1;;;registry2.com:user2:pass2`.
 - Env `AUTH_REGISTRY_DELIMITER` to change the separator between authentication info *parts*. By default, a colon: "`:`". If you use keys that contain single colons, you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=":::"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:::user1:::pass1 registry2.com:::user2:::pass2`.
+- Env `PROXY_REQUEST_BUFFERING`: If push is allowed, buffering requests can cause issues on slow upstreams.
+If you have trouble pushing, set this to `false` first, then fix remainig timeouts.
+Default is `true` to not change default behavior.
+ENV PROXY_REQUEST_BUFFERING="true"
 - Timeouts ENVS - all of them can pe specified to control different timeouts, and if not set, the defaults will be the ones from `Dockerfile`. The directives will be added into `http` block.:
   - SEND_TIMEOUT : see [send_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#send_timeout)
   - CLIENT_BODY_TIMEOUT : see [client_body_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_body_timeout)
@@ -176,6 +180,87 @@ docker run --rm --name docker_registry_proxy -it \
        rpardini/docker-registry-proxy:0.6.2
 ```
 
+### Kind Cluster
+
+[Kind](https://github.com/kubernetes-sigs/kind/) is a tool for running local Kubernetes clusters using Docker container “nodes”.
+
+Because cluster nodes are Docker containers, docker-registry-proxy needs to be in the same docker network.
+
+Example joining the _kind_ docker network and using hostname _docker-registry-proxy_ as hostname :
+
+```bash
+docker run --rm --name docker_registry_proxy -it \
+       --net kind --hostname docker-registry-proxy \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
+       -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
+       -v $(pwd)/docker_mirror_certs:/ca \
+       rpardini/docker-registry-proxy:0.6.2
+```
+
+Now deploy your Kind cluster and then automatically configure the nodes with the following script :
+
+```bash
+#!/bin/sh
+KIND_NAME=${1-kind}
+SETUP_URL=http://docker-registry-proxy:3128/setup/systemd
+pids=""
+for NODE in $(kind get nodes --name "$KIND_NAME"); do
+  docker exec "$NODE" sh -c "\
+      curl $SETUP_URL \
+      | sed s/docker\.service/containerd\.service/g \
+      | sed '/Environment/ s/$/ \"NO_PROXY=127.0.0.0\/8,10.0.0.0\/8,172.16.0.0\/12,192.168.0.0\/16\"/' \
+      | bash" & pids="$pids $!" # Configure every node in background
+done
+wait $pids # Wait for all configurations to end
+```
+
+### K3D Cluster
+
+[K3d](https://k3d.io/) is similar to Kind but is based on k3s. In order to run with its registry you need to setup settings like shown below.
+
+```sh
+# docker-registry-proxy
+docker run -d --name registry-proxy --restart=always \
+-v /tmp/registry-proxy/mirror_cache:/docker_mirror_cache \
+-v /tmp/registry-proxy/certs:/ca \
+rpardini/docker-registry-proxy:0.6.4
+
+export PROXY_HOST=registry-proxy
+export PROXY_PORT=3128
+export NOPROXY_LIST="localhost,127.0.0.1,0.0.0.0,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.local,.svc"
+
+cat <<EOF > /etc/k3d-proxy-config.yaml
+apiVersion: k3d.io/v1alpha3
+kind: Simple
+name: mycluster
+servers: 1
+agents: 0
+options:
+    k3d:
+       wait: true
+       timeout: "60s"
+    kubeconfig:
+       updateDefaultKubeconfig: true
+       switchCurrentContext: true
+env:
+  - envVar: HTTP_PROXY=http://$PROXY_HOST:$PROXY_PORT
+    nodeFilters:
+      - all
+  - envVar: HTTPS_PROXY=http://$PROXY_HOST:$PROXY_PORT
+    nodeFilters:
+      - all
+  - envVar: NO_PROXY='$NOPROXY_LIST'
+    nodeFilters:
+      - all
+volumes:
+  - volume: $REGISTRY_DIR/docker_mirror_certs/ca.crt:/etc/ssl/certs/registry-proxy-ca.pem
+    nodeFilters:
+      - all
+EOF
+
+k3d cluster create --config /etc/k3d-proxy-config.yaml
+```
+
 ## Configuring the Docker clients using Docker Desktop for Mac
 
 Separate instructions for Mac clients available in [this dedicated Doc Desktop for Mac document](Docker-for-Mac.md).
@@ -256,9 +341,9 @@ docker run --rm --name docker_registry_proxy -it
 - If you authenticate to a private registry and pull through the proxy, those images will be served to any client that can reach the proxy, even without authentication. *beware*
 - Repeat, **this will make your private images very public if you're not careful**.
 - ~~**Currently you cannot push images while using the proxy** which is a shame. PRs welcome.~~ **SEE `ALLOW_PUSH` ENV FROM USAGE SECTION.**
-- Setting this on Linux is relatively easy. 
-  - On Mac and Windows the CA-certificate part will be very different but should work in principle.
-  - Please send PRs with instructions for Windows and Mac if you succeed!
+- Setting this on Linux is relatively easy.
+  - On Mac follow the instructions [here](Docker-for-Mac.md).
+  - On Windows follow the instructions [here](Docker-Desktop-Windows.md).
 
 ### Why not use Docker's own registry, which has a mirror feature?
 
@@ -280,7 +365,7 @@ Yeah. Docker Inc should do it. So should NPM, Inc. Wonder why they don't. 😼
 ### TODO:
 
 - [x] Basic Docker-for-Mac set-up instructions
-- [ ] Basic Docker-for-Windows set-up instructions. 
+- [x] Basic Docker-for-Windows set-up instructions. 
 - [ ] Test and make auth work with quay.io, unfortunately I don't have access to it (_hint, hint, quay_)
 - [x] Hide the mitmproxy building code under a Docker build ARG.
 - [ ] "Developer Office" proxy scenario, where many developers on a fast LAN share a proxy for bandwidth and speed savings (already works for pulls, but messes up pushes, which developers tend to use a lot)
