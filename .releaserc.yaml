@@ -1,0 +1,28 @@
+branches:
+  - master
+preset: "angular"
+tagFormat: v${version}
+plugins:
+  - "@semantic-release/commit-analyzer"
+  - "@semantic-release/exec"
+repositoryUrl: "git@github.com:coreweave/docker-registry-proxy.git"
+analyzeCommits:
+  - path: "@semantic-release/commit-analyzer"
+    releaseRules:
+      - type: "feature"
+        release: "minor"
+      - type: "update"
+        release: "minor"
+      - type: "refactor"
+        release: "patch"
+      - type: "bugfix"
+        release: "patch"
+      - type: "docs"
+        release: "patch"
+    parserOpts:
+      noteKeywords:
+        - "BREAKING CHANGE"
+        - "BREAKING CHANGES"
+publish:
+  - path: "@semantic-release/exec"
+    publishCmd: "echo \"BUILD_VERSION=\\\"v${nextRelease.version}\\\"\" > artifacts.env"

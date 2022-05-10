@@ -1,0 +1,80 @@
+default:
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [ "" ]
+  tags:
+    - ord1-tenant-acc
+
+stages:
+  - build
+  - release
+
+build:
+  stage: build
+  variables:
+    REF_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    FIXED_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+    DOCKERFILE: ${CI_PROJECT_DIR}/Dockerfile
+  before_script:
+    - export HTTP_PROXY=${CACHE_PROXY}
+    - export NO_PROXY=${CACHE_REGISTRY_HOST}
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+  script: |-
+    /kaniko/executor \
+      $KANIKO_ADDTL_ARGS \
+      --context . \
+      --dockerfile $DOCKERFILE \
+      --destination $REF_IMAGE \
+      --destination $FIXED_IMAGE
+  only:
+    changes:
+      - Dockerfile
+      - entrypoint.sh
+      - LICENSE
+      - liveliness.sh
+      - nginx.conf
+      - nginx.manifest.common.conf
+      - nginx.manifest.stale.conf
+      - create_ca_cert.sh
+
+build:release:
+  stage: build
+  image: node:lts-alpine3.15
+  only:
+    refs:
+      - master
+  artifacts:
+    paths:
+      - artifacts.env
+    expire_in: 1 day
+  before_script:
+    - apk --no-cache add git
+  script:
+    - npm install
+    - npx semantic-release
+
+release:
+  stage: release
+  only:
+    refs:
+      - master
+  dependencies:
+    - build:release
+  variables:
+    DOCKERFILE: $CI_PROJECT_DIR/Dockerfile
+    LATEST_IMAGE: $CI_REGISTRY_IMAGE:latest
+  before_script:
+    - export HTTP_PROXY=${CACHE_PROXY}
+    - export NO_PROXY=${CACHE_REGISTRY_HOST}
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - export $(cat artifacts.env | xargs)
+    - export RELEASE_IMAGE=$CI_REGISTRY_IMAGE:$BUILD_VERSION
+  script: |-
+    /kaniko/executor \
+    $KANIKO_ADDTL_ARGS \
+    --context . \
+    --dockerfile $DOCKERFILE \
+    --destination $RELEASE_IMAGE \
+    --destination $LATEST_IMAGE
