@@ -102,6 +102,13 @@ ENV ALLOW_PUSH="false"
 # Default is true to not change default behavior.
 ENV PROXY_REQUEST_BUFFERING="true"
 
+# Should we allow overridding with own authentication, default to false.
+ENV ALLOW_OWN_AUTH="false"
+
+# Should we allow push only with own authentication, default to false.
+ENV ALLOW_PUSH_WITH_OWN_AUTH="false"
+
+
 # Timeouts
 # ngx_http_core_module
 ENV SEND_TIMEOUT="60s"
