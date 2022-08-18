@@ -33,6 +33,10 @@ confpath=/etc/nginx/resolvers.conf
 if [ ! -e $confpath ]
 then
     echo "Using auto-determined resolver '$conf' via '$confpath'"
+    if [[ "a${DISABLE_IPV6}" == "atrue" ]]; then
+      echo "Disabling IPv6 in '$confpath'"
+      conf="${conf%;*} ipv6=off;"
+    fi
     echo "$conf" > $confpath
 else
     echo "Not using resolver config, keep existing '$confpath' -- mounted by user?"
