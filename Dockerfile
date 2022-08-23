@@ -63,6 +63,8 @@ EXPOSE 8082
 ENV REGISTRIES="k8s.gcr.io gcr.io quay.io"
 # A space delimited list of registry:user:password to inject authentication for
 ENV AUTH_REGISTRIES="some.authenticated.registry:oneuser:onepassword another.registry:user:password"
+# A space delimited list of domain=IP1,IP2 to inject upstream -> server mapping for
+ENV UPSTREAM_MAPPINGS=""
 # Should we verify upstream's certificates? Default to true.
 ENV VERIFY_SSL="true"
 # Enable debugging mode; this inserts mitmproxy/mitmweb between the CONNECT proxy and the caching layer
