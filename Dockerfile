@@ -102,6 +102,8 @@ ENV ALLOW_PUSH="false"
 # Default is true to not change default behavior.
 ENV PROXY_REQUEST_BUFFERING="true"
 
+ENV FORCE_UPSTREAM_HTTP_1_1="false"
+
 # Timeouts
 # ngx_http_core_module
 ENV SEND_TIMEOUT="60s"
