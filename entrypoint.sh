@@ -25,7 +25,11 @@ echo "DEBUG, determined RESOLVERS from /etc/resolv.conf: '$RESOLVERS'"
 conf=""
 for ONE_RESOLVER in ${RESOLVERS}; do
 	echo "Possible resolver: $ONE_RESOLVER"
-	conf="resolver $ONE_RESOLVER; "
+	if [[ "a${DISABLE_IPV6}" == "atrue" ]]; then
+		conf="resolver $ONE_RESOLVER ipv6=off; "
+	else
+		conf="resolver $ONE_RESOLVER; "
+	fi
 done
 
 echo "Final chosen resolver: $conf"

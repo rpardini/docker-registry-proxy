@@ -102,6 +102,7 @@ ENV PROXY_REQUEST_BUFFERING="true"
   - PROXY_CONNECT_READ_TIMEOUT : see [proxy_connect_read_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_read_timeout)
   - PROXY_CONNECT_CONNECT_TIMEOUT : see [proxy_connect_connect_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_connect_timeout)
   - PROXY_CONNECT_SEND_TIMEOUT : see [proxy_connect_send_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_send_timeout))
+- Env `DISABLE_IPV6`: If you have problems with `nginx` attempting to connect to hosts over IPv6 but your network doesn't properly support IPv6, set this to `true` to ignore IPv6 AAAA records in DNS responses.
 
 
 ### Simple (no auth, all cache)
