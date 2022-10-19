@@ -117,5 +117,8 @@ ENV PROXY_CONNECT_READ_TIMEOUT="60s"
 ENV PROXY_CONNECT_CONNECT_TIMEOUT="60s"
 ENV PROXY_CONNECT_SEND_TIMEOUT="60s"
 
+# Disable use of IPv6 hosts for outbound proxy requests if set to true
+ENV DISABLE_IPV6="false"
+
 # Did you want a shell? Sorry, the entrypoint never returns, because it runs nginx itself. Use 'docker exec' if you need to mess around internally.
 ENTRYPOINT ["/entrypoint.sh"]
