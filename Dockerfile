@@ -47,8 +47,7 @@ ADD nginx.manifest.stale.conf /etc/nginx/nginx.manifest.stale.conf
 
 # Add our very hackish entrypoint and ca-building scripts, make them executable
 ADD entrypoint.sh /entrypoint.sh
-ADD create_ca_cert.sh /create_ca_cert.sh
-RUN chmod +x /create_ca_cert.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Clients should only use 3128, not anything else.
 EXPOSE 3128
