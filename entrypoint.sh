@@ -93,6 +93,11 @@ if [ "$AUTH_REGISTRIES" ]; then
     done
 fi
 
+# User may not want to expose raw secrets in `ps -ef` output. Accept b64-encoded nginx auth.map configuration
+if [ -n "${AUTH_REGISTRIES_RAW}" ] ; then
+    echo "${AUTH_REGISTRIES_RAW}" >>/etc/nginx/docker.auth.map
+fi
+
 # create default config for the caching layer to listen on 443.
 echo "        listen 443 ssl default_server;" > /etc/nginx/caching.layer.listen
 echo "error_log  /var/log/nginx/error.log warn;" > /etc/nginx/error.log.debug.warn
