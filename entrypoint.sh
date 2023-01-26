@@ -259,6 +259,20 @@ echo -e "\nTimeout configs: ---"
 cat /etc/nginx/nginx.timeouts.config.conf
 echo -e "---\n"
 
+# Request buffering
+echo "" > /etc/nginx/proxy.request.buffering.conf
+if [[ "a${PROXY_REQUEST_BUFFERING}" == "afalse" ]]; then
+  cat << EOD > /etc/nginx/proxy.request.buffering.conf
+  proxy_max_temp_file_size 0;
+  proxy_request_buffering off;
+  proxy_http_version 1.1;
+EOD
+fi
+
+echo -e "\nRequest buffering: ---"
+cat /etc/nginx/proxy.request.buffering.conf
+echo -e "---\n"
+
 # Upstream SSL verification.
 echo "" > /etc/nginx/docker.verify.ssl.conf
 if [[ "a${VERIFY_SSL}" == "atrue" ]]; then
