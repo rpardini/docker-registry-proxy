@@ -111,6 +111,8 @@ echo -n "" >/etc/nginx/nginx.manifest.caching.config.conf
     # First tier caching of manifests; configure via MANIFEST_CACHE_PRIMARY_REGEX and MANIFEST_CACHE_PRIMARY_TIME
     location ~ ^/v2/(.*)/manifests/${MANIFEST_CACHE_PRIMARY_REGEX} {
         set \$docker_proxy_request_type "manifest-primary";
+        proxy_no_cache \$manifestcacheExclude;
+        proxy_cache_bypass \$manifestcacheExclude;
         proxy_cache_valid ${MANIFEST_CACHE_PRIMARY_TIME};
         include "/etc/nginx/nginx.manifest.stale.conf";
     }
@@ -120,6 +122,8 @@ EOD
     # Secondary tier caching of manifests; configure via MANIFEST_CACHE_SECONDARY_REGEX and MANIFEST_CACHE_SECONDARY_TIME
     location ~ ^/v2/(.*)/manifests/${MANIFEST_CACHE_SECONDARY_REGEX} {
         set \$docker_proxy_request_type "manifest-secondary";
+        proxy_no_cache \$manifestcacheExclude;
+        proxy_cache_bypass \$manifestcacheExclude;
         proxy_cache_valid ${MANIFEST_CACHE_SECONDARY_TIME};
         include "/etc/nginx/nginx.manifest.stale.conf";
     }
@@ -129,6 +133,8 @@ EOD
     # Default tier caching for manifests. Caches for ${MANIFEST_CACHE_DEFAULT_TIME} (from MANIFEST_CACHE_DEFAULT_TIME)
     location ~ ^/v2/(.*)/manifests/ {
         set \$docker_proxy_request_type "manifest-default";
+        proxy_no_cache \$manifestcacheExclude;
+        proxy_cache_bypass \$manifestcacheExclude;
         proxy_cache_valid ${MANIFEST_CACHE_DEFAULT_TIME};
         include "/etc/nginx/nginx.manifest.stale.conf";
     }
@@ -169,6 +175,17 @@ else
     }
 EOF
 fi
+
+# Manifest cache exclude per host basis:
+## default 0 should always be here:
+echo "default 0;" > /etc/nginx/nginx.manifest.cache.exclude.map;
+if [[ "x$MANIFEST_CACHE_EXCLUDE_HOSTS" != "x" ]]; then
+    MANIFEST_CACHE_EXCLUDE_LIST=( $MANIFEST_CACHE_EXCLUDE_HOSTS )
+    for index in "${!MANIFEST_CACHE_EXCLUDE_LIST[@]}"; do
+        echo "\"${MANIFEST_CACHE_EXCLUDE_LIST[$index]}\" 1;";
+    done >> /etc/nginx/nginx.manifest.cache.exclude.map;
+fi
+
 
 # normally use non-debug version of nginx
 NGINX_BIN="/usr/sbin/nginx"

@@ -22,6 +22,8 @@ Since version `0.6.0`, this proxy can be configured with the env var `ENABLE_MAN
 configurable caching of the manifest requests that DockerHub throttles. You can then fine-tune other parameters to your needs.
 Together with the possibility to centrally inject authentication (since 0.3x), this is probably one of the best ways to bring relief to your distressed cluster, while at the same time saving lots of bandwidth and time. 
 
+It is possible to disable manifest caching for your own private registry, see this [example](#exclude-registry-from-manifest-caching)
+
 Note: enabling manifest caching, in its default config, effectively makes some tags **immutable**. Use with care. The configuration ENVs are explained in the [Dockerfile](./Dockerfile), relevant parts included below.
 
 ```dockerfile
@@ -259,6 +261,19 @@ volumes:
 EOF
 
 k3d cluster create --config /etc/k3d-proxy-config.yaml
+```
+
+### Exclude registry from manifest caching
+
+In some cases you may want to disable manifest caching for some registries (most preferably, for your private registry):
+
+```bash
+docker run --rm --name docker_registry_proxy -it \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
+       -e MANIFEST_CACHE_EXCLUDE_HOSTS="private-0.registry.tld private-1.registry.tld" \
+       -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
+       -v $(pwd)/docker_mirror_certs:/ca \
+       rpardini/docker-registry-proxy:0.6.2
 ```
 
 ## Configuring the Docker clients using Docker Desktop for Mac
