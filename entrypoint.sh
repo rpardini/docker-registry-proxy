@@ -46,7 +46,7 @@ ALLDOMAINS=""
 echo -n "" > /etc/nginx/docker.intercept.map
 
 # Some hosts/registries are always needed, but others can be configured in env var REGISTRIES
-for ONEREGISTRYIN in docker.caching.proxy.internal registry-1.docker.io auth.docker.io ${REGISTRIES}; do
+for ONEREGISTRYIN in docker.caching.proxy.internal ${DEFAULT_REGISTRY} auth.docker.io ${REGISTRIES}; do
     ONEREGISTRY=$(echo ${ONEREGISTRYIN} | xargs) # Remove whitespace
     echo "Adding certificate for registry: $ONEREGISTRY"
     ALLDOMAINS="${ALLDOMAINS},DNS:${ONEREGISTRY}"
@@ -199,14 +199,14 @@ if [[ "a${DEBUG_HUB}" == "atrue" ]]; then
   fi
 
   # in debug hub mode, we remap targetHost to point to mitmproxy below
-  echo "\"registry-1.docker.io\" \"127.0.0.1:445\";" > /etc/nginx/docker.targetHost.map
+  echo "\"${DEFAULT_REGISTRY}\" \"127.0.0.1:445\";" > /etc/nginx/docker.targetHost.map
 
   echo "Debugging outgoing DockerHub connections via mitmproxy on 8082."  >&2
   # this one has keep_host_header=false so we don't need to modify nginx config
   mitmweb --no-web-open-browser --set web_host=0.0.0.0 --set confdir=~/.mitmproxy-outgoing-hub \
           --set termlog_verbosity=error --set stream_large_bodies=128k --web-port 8082 \
           --set keep_host_header=false --set ssl_insecure=true \
-          --mode reverse:https://registry-1.docker.io --listen-host 0.0.0.0 \
+          --mode reverse:https://${DEFAULT_REGISTRY} --listen-host 0.0.0.0 \
           --listen-port 445 --certs /certs/fullchain_with_key.pem  &
 
   echo "Warning, DockerHub outgoing debugging disables upstream SSL verification for all upstreams."  >&2

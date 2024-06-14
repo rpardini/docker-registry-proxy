@@ -59,6 +59,8 @@ EXPOSE 8081
 EXPOSE 8082
 
 ## Default envs.
+# The default registry used for pulling an image without a specified host.
+ENV DEFAULT_REGISTRY="registry-1.docker.io"
 # A space delimited list of registries we should proxy and cache; this is in addition to the central DockerHub.
 ENV REGISTRIES="k8s.gcr.io gcr.io quay.io"
 # A space delimited list of registry:user:password to inject authentication for
