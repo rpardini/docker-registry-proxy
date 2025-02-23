@@ -1,3 +1,6 @@
+# syntax=docker/dockerfile:1
+# check=skip=SecretsUsedInArgOrEnv
+
 # We start from my nginx fork which includes the proxy-connect module from tEngine
 # Source is available at https://github.com/rpardini/nginx-proxy-connect-stable-alpine
 # This is already multi-arch!
@@ -7,7 +10,7 @@ ARG BASE_IMAGE_SUFFIX=""
 FROM ${BASE_IMAGE}${BASE_IMAGE_SUFFIX}
 
 # Link image to original repository on GitHub
-LABEL org.opencontainers.image.source https://github.com/rpardini/docker-registry-proxy
+LABEL org.opencontainers.image.source=https://github.com/rpardini/docker-registry-proxy
 
 # apk packages that will be present in the final image both debug and release
 RUN apk add --no-cache --update bash ca-certificates-bundle coreutils openssl
