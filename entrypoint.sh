@@ -288,6 +288,10 @@ else
     echo "Upstream SSL certificate verification is DISABLED."
 fi
 
+echo -e "\nFinal resolver configuration: ---"
+cat "${confpath}"
+echo -e "---\n"
+
 echo "Testing nginx config..."
 ${NGINX_BIN} -t
 
