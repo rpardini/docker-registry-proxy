@@ -103,10 +103,17 @@ echo "error_log  /var/log/nginx/error.log warn;" > /etc/nginx/error.log.debug.wa
 
 # Set Docker Registry cache size, by default, 32 GB ('32g')
 CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
+# Set Docker Registry cache max age, by default, 60 days ('60d')
+CACHE_MAX_AGE=${CACHE_MAX_AGE:-60d}
 
 # The cache directory. This can get huge. Better to use a Docker volume pointing here!
 # Set to 32gb which should be enough
-echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE inactive=60d keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/cache_max_size.conf
+echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE inactive=$CACHE_MAX_AGE keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/proxy_cache_path.conf
+
+# Set Docker Registry cache valid duration, by default, 60 days ('60d')
+CACHE_VALIDITY_PERIOD=${CACHE_VALIDITY_PERIOD:-60d}
+# Cache all 200, 206 for CACHE_VALIDITY_PERIOD.
+echo "proxy_cache_valid 200 206 $CACHE_VALIDITY_PERIOD;" > /etc/nginx/conf.d/proxy_cache_valid.conf
 
 # Manifest caching configuration. We generate config based on the environment vars.
 echo -n "" >/etc/nginx/nginx.manifest.caching.config.conf
@@ -115,8 +122,9 @@ echo -n "" >/etc/nginx/nginx.manifest.caching.config.conf
     # First tier caching of manifests; configure via MANIFEST_CACHE_PRIMARY_REGEX and MANIFEST_CACHE_PRIMARY_TIME
     location ~ ^/v2/(.*)/manifests/${MANIFEST_CACHE_PRIMARY_REGEX} {
         set \$docker_proxy_request_type "manifest-primary";
+        set \$cache_key \$uri;
         proxy_cache_valid ${MANIFEST_CACHE_PRIMARY_TIME};
-        include "/etc/nginx/nginx.manifest.stale.conf";
+        include "/etc/nginx/nginx.manifest.common.conf";
     }
 EOD
 
@@ -124,8 +132,9 @@ EOD
     # Secondary tier caching of manifests; configure via MANIFEST_CACHE_SECONDARY_REGEX and MANIFEST_CACHE_SECONDARY_TIME
     location ~ ^/v2/(.*)/manifests/${MANIFEST_CACHE_SECONDARY_REGEX} {
         set \$docker_proxy_request_type "manifest-secondary";
+        set \$cache_key \$uri;
         proxy_cache_valid ${MANIFEST_CACHE_SECONDARY_TIME};
-        include "/etc/nginx/nginx.manifest.stale.conf";
+        include "/etc/nginx/nginx.manifest.common.conf";
     }
 EOD
 
@@ -133,8 +142,9 @@ EOD
     # Default tier caching for manifests. Caches for ${MANIFEST_CACHE_DEFAULT_TIME} (from MANIFEST_CACHE_DEFAULT_TIME)
     location ~ ^/v2/(.*)/manifests/ {
         set \$docker_proxy_request_type "manifest-default";
+        set \$cache_key \$uri;
         proxy_cache_valid ${MANIFEST_CACHE_DEFAULT_TIME};
-        include "/etc/nginx/nginx.manifest.stale.conf";
+        include "/etc/nginx/nginx.manifest.common.conf";
     }
 EOD
 
@@ -142,8 +152,9 @@ EOD
     # Manifest caching is disabled. Enable it with ENABLE_MANIFEST_CACHE=true
     location ~ ^/v2/(.*)/manifests/ {
         set \$docker_proxy_request_type "manifest-default-disabled";
+        set \$cache_key \$uri;
         proxy_cache_valid 0s;
-        include "/etc/nginx/nginx.manifest.stale.conf";
+        include "/etc/nginx/nginx.manifest.common.conf";
     }
 EOD
 
