@@ -151,8 +151,44 @@ echo -e "\nManifest caching config: ---\n"
 cat /etc/nginx/nginx.manifest.caching.config.conf
 echo "---"
 
+if [[ "a${ALLOW_OWN_AUTH}" == "atrue" ]]; then
+    cat << 'EOF' > /etc/nginx/conf.d/allowed_override_auth.conf
+    if ($http_authorization != "") {
+        # override with own authentication if provided
+        set $finalAuth $http_authorization;
+    }
+EOF
+else
+    echo '' > /etc/nginx/conf.d/allowed_override_auth.conf
+fi
+
 if [[ "a${ALLOW_PUSH}" == "atrue" ]]; then
     cat <<EOF > /etc/nginx/conf.d/allowed.methods.conf
+    # allow to upload big layers
+    client_max_body_size 0;
+
+    # only cache GET requests
+    proxy_cache_methods GET;
+EOF
+elif [[ "a${ALLOW_PUSH_WITH_OWN_AUTH}" == "atrue" ]]; then
+    cat << 'EOF' > /etc/nginx/conf.d/allowed.methods.conf
+    # Block POST/PUT/DELETE if own authentication is not provided.
+    set $combined_ha_rm "$http_authorization$request_method";
+    if ($combined_ha_rm = POST) {
+        return 405 "POST method is not allowed";
+    }
+    if ($combined_ha_rm = PUT) {
+        return 405 "PUT method is not allowed";
+    }
+    if ($combined_ha_rm = DELETE) {
+        return 405  "DELETE method is not allowed";
+    }
+
+    if ($http_authorization != "") {
+        # override with own authentication if provided
+        set $finalAuth $http_authorization;
+    }
+
     # allow to upload big layers
     client_max_body_size 0;
 
