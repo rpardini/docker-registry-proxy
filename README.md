@@ -8,6 +8,14 @@
 A caching proxy for Docker; allows centralised management of (multiple) registries and their authentication; caches images from *any* registry.
 Caches the potentially huge blob/layer requests (for bandwidth/time savings), and optionally caches manifest requests ("pulls") to avoid rate-limiting.
 
+### Updated late February 2025 for the "2nd Docker Apocalypse"
+
+Docker, Inc has announced a [2nd apocalypse](https://www.docker.com/blog/revisiting-docker-hub-policies-prioritizing-developer-experience/) for 1st of March'25 (it has [already been pushed back to April](https://www.theregister.com/2025/02/22/docker_hub_pull_limits/)).
+This has caused a new surge of interest in this project; in response I've updated all dependencies to the latest versions,
+added a [Test matrix](https://github.com/rpardini/docker-registry-proxy/actions/workflows/test.yaml), merged some pull requests (including `DISABLE_IPV6=true`, which was a long-standing request), and updated the documentation.
+
+Many thanks to all the contributors over the years; I've no intention of abandoning this project -- please keep sending and updating your PRs.
+
 ### NEW: avoiding DockerHub Pull Rate Limits with Caching
 
 Starting November 2nd, 2020, DockerHub will 
