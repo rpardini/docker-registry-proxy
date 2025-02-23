@@ -13,17 +13,18 @@ jobs:
       fail-fast: false # let other jobs try to complete if one fails
       matrix:
         include:
-          - { id: "default-amd64", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=false", runner: "ubuntu-22.04" }
-          - { id: "default-arm64", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=false",  runner: "ubuntu-22.04-arm" }
-
+          - { id: "default-amd64", extraDockerOpts: "", runner: "ubuntu-22.04" }
+          - { id: "default-arm64", extraDockerOpts: "",  runner: "ubuntu-22.04-arm" }
+          - { id: "manifest-cache", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=true", runner: "ubuntu-22.04" }
+          - { id: "disable-ipv6", extraDockerOpts: "-e DISABLE_IPV6=true", runner: "ubuntu-22.04" }
 
     runs-on: "${{ matrix.runner }}"
     name: "${{ matrix.id }} (${{ matrix.extraDockerOpts }})"
     steps:
 
-      - name: Install pipetty and ccze
+      - name: Install pipetty and ccze and jq
         run: |
-          sudo apt-get install -y colorized-logs ccze
+          sudo apt-get -o "DPkg::Use-Pty=false" -q install -y colorized-logs ccze jq
 
       - name: Get machine's first IPv4 address for eth0
         id: ip
@@ -158,7 +159,12 @@ jobs:
           docker logs docker_registry_proxy > cold_cache.txt
 
       - name: "LOG: cold_cache.txt"
-        run: pipetty ccze -A < cold_cache.txt
+        run: |
+          pipetty ccze -A < cold_cache.txt
+
+      - name: "JSON: cold_cache.txt"
+        run: |
+          grep '^{"' cold_cache.txt | pipetty jq .
 
       - name: prune all unused images from docker cache again
         timeout-minutes: 1
@@ -180,5 +186,12 @@ jobs:
           docker logs docker_registry_proxy > warm_cache.txt
 
       - name: "LOG: warm_cache.txt"
-        run: pipetty ccze -A < warm_cache.txt
+        run: |
+          pipetty ccze -A < warm_cache.txt
+          echo "--------------------------------------------------------------"
+          grep '^{"' warm_cache.txt | pipetty jq .
+
+      - name: "JSON: warm_cache.txt"
+        run: |
+          grep '^{"' warm_cache.txt | pipetty jq .
 
