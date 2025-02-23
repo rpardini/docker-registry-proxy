@@ -90,7 +90,12 @@ for this to work it requires inserting a root CA certificate into system trusted
 - Env `PROXY_REQUEST_BUFFERING`: If push is allowed, buffering requests can cause issues on slow upstreams.
 If you have trouble pushing, set this to `false` first, then fix remainig timeouts.
 Default is `true` to not change default behavior.
-ENV PROXY_REQUEST_BUFFERING="true"
+- Env `CACHE_GREEDY_MODE`: In greedy mode a layer exist only once in the cache, and regardless which repository it is initially from, each repository get a hit on this layer now. This is the most space efficient way.  
+Pitfall: You can not push images that reuse layers from a differnt registry (`ALLOW_PUSH=true`).
+Set `CACHE_GREEDY_MODE=false` to enable this.
+With `CACHE_GREEDY_MODE=false` each registry have its own cache.  
+WARNING: Changing this setting invalitates your cache.  
+Default is `true` to not change default behavior.
 - Timeouts ENVS - all of them can pe specified to control different timeouts, and if not set, the defaults will be the ones from `Dockerfile`. The directives will be added into `http` block.:
   - SEND_TIMEOUT : see [send_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#send_timeout)
   - CLIENT_BODY_TIMEOUT : see [client_body_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_body_timeout)

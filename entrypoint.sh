@@ -268,6 +268,22 @@ echo -e "\nRequest buffering: ---"
 cat /etc/nginx/proxy.request.buffering.conf
 echo -e "---\n"
 
+# Cache greedy mode
+echo "" > /etc/nginx/cache.greedy.mode.conf
+if [[ "a${CACHE_GREEDY_MODE}" == "afalse" ]]; then
+  cat << EOD > /etc/nginx/cache.greedy.mode.conf
+  proxy_cache_key   "\$host \$uri";
+EOD
+else
+  cat << EOD > /etc/nginx/cache.greedy.mode.conf
+  proxy_cache_key   \$uri;
+EOD
+fi
+
+echo -e "\nCache greedy mode is '$CACHE_GREEDY_MODE' ---"
+cat /etc/nginx/cache.greedy.mode.conf
+echo -e "---\n"
+
 # Upstream SSL verification.
 echo "" > /etc/nginx/docker.verify.ssl.conf
 if [[ "a${VERIFY_SSL}" == "atrue" ]]; then
