@@ -65,7 +65,7 @@ jobs:
           docker stop docker_registry_proxy_fg || true
           docker remove docker_registry_proxy_fg || true
 
-      - name: Start proxy instance in docker (ENABLE_MANIFEST_CACHE=false)
+      - name: Start proxy instance in docker
         run: |
           docker run -d --rm --name docker_registry_proxy \
             -p 0.0.0.0:3128:3128 ${{ matrix.extraDockerOpts }} \
