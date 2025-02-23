@@ -44,11 +44,12 @@ jobs:
 
       - name: Start foreground instance for first-contact sanity checking
         run: |
-          timeout --signal=9 --verbose 10 docker run \
+          timeout --verbose 10 docker run \
             -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=false \
             -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
             -v $(pwd)/docker_mirror_certs:/ca \
             sanity-check/docker-registry-proxy:latest || true
+          sleep 5
 
       - name: Start proxy instance in docker (ENABLE_MANIFEST_CACHE=false)
         run: |
