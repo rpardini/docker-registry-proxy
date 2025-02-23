@@ -1,6 +1,6 @@
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/rpardini/docker-registry-proxy/master-latest?label=%3Alatest%20from%20master)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/rpardini/docker-registry-proxy/master-latest.yaml?branch=master&label=%3Alatest%20from%20master)
 ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/rpardini/docker-registry-proxy?label=last%20tagged%20release)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/rpardini/docker-registry-proxy/tags?label=last%20tagged%20release)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/rpardini/docker-registry-proxy/tags.yaml?branch=master&label=last%20tagged%20release)
 ![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/rpardini/docker-registry-proxy?sort=semver)
 ![Docker Pulls](https://img.shields.io/docker/pulls/rpardini/docker-registry-proxy)
 ## TL,DR
