@@ -29,7 +29,7 @@ jobs:
       - name: Get machine's first IPv4 address for eth0
         id: ip
         run: |
-          echo ::set-output name=ETHER::$(sudo ip addr show dev eth0 | egrep "^(\ )+inet\ " | head -1 | tr -s " " | cut -d " " -f 3 | cut -d "/" -f 1)
+          echo "ETHER=$(sudo ip addr show dev eth0 | egrep '^(\ )+inet\ ' | head -1 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)" >> $GITHUB_OUTPUT
 
       - name: Show the IPs via vars
         run: |
@@ -162,6 +162,10 @@ jobs:
         run: |
           pipetty ccze -A < cold_cache.txt
 
+      - name: "ERRORS/WARNINGS: cold_cache.txt"
+        run: |
+          grep -e "error" -e "warn" cold_cache.txt | pipetty ccze -A || true
+
       - name: "JSON: cold_cache.txt"
         run: |
           grep '^{"' cold_cache.txt | pipetty jq .
@@ -190,6 +194,10 @@ jobs:
           pipetty ccze -A < warm_cache.txt
           echo "--------------------------------------------------------------"
           grep '^{"' warm_cache.txt | pipetty jq .
+
+      - name: "ERRORS/WARNINGS: warm_cache.txt"
+        run: |
+          grep -e "error" -e "warn" warm_cache.txt | pipetty ccze -A || true
 
       - name: "JSON: warm_cache.txt"
         run: |
