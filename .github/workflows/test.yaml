@@ -42,6 +42,14 @@ jobs:
           push: false
           load: true
 
+      - name: Start foreground instance for first-contact sanity checking
+        run: |
+          timeout 30 docker run --rm --name docker_registry_proxy \
+            -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=false \
+            -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
+            -v $(pwd)/docker_mirror_certs:/ca \
+            sanity-check/docker-registry-proxy:latest || true
+
       - name: Start proxy instance in docker (ENABLE_MANIFEST_CACHE=false)
         run: |
           docker run -d --rm --name docker_registry_proxy \
