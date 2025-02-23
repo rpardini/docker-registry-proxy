@@ -38,6 +38,30 @@ else
     echo "Not using resolver config, keep existing '$confpath' -- mounted by user?"
 fi
 
+# Generate nginx upstream blocks into file. Function similar to a /etc/hosts file but includes round-robin selection
+# e.g when UPSTREAM_MAPPINGS="registry1=10.0.1.10:443,10.0.1.11 registry2=5.0.1.10", the following file is generated
+# upstream registry1 {
+#         server 10.0.1.10:443;
+#         server 10.0.1.11;
+# }
+# upstream registry2 {
+#         server 5.0.1.10;
+# }
+echo -n "" >> /etc/nginx/upstreams.conf
+
+if [ ! -z "$UPSTREAM_MAPPINGS" ]; then
+
+    for UPSTREAM in ${UPSTREAM_MAPPINGS}; do
+        echo "upstream ${UPSTREAM%=*} {" >> /etc/nginx/upstreams.conf
+        comma_separated_hosts="${UPSTREAM#*=}"
+        hosts=`echo $comma_separated_hosts | tr ',' ' '`
+        for host in ${hosts}; do
+            echo -e "\tserver $host;" >> /etc/nginx/upstreams.conf
+        done
+        echo "}" >> /etc/nginx/upstreams.conf
+    done
+fi
+
 # The list of SAN (Subject Alternative Names) for which we will create a TLS certificate.
 ALLDOMAINS=""
 
