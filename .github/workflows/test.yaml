@@ -49,7 +49,7 @@ jobs:
             sanity-check/docker-registry-proxy:latest || true
           sleep 3
           docker stop docker_registry_proxy_fg || true
-          docker remote docker_registry_proxy_fg || true
+          docker remove docker_registry_proxy_fg || true
 
       - name: Start proxy instance in docker (ENABLE_MANIFEST_CACHE=false)
         run: |
