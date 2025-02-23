@@ -130,7 +130,7 @@ docker run --rm --name docker_registry_proxy -it \
        -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
-       -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
+       -e REGISTRIES="registry.k8s.io gcr.io quay.io your.own.registry another.public.registry" \
        -e AUTH_REGISTRIES="auth.docker.io:dockerhub_username:dockerhub_password your.own.registry:username:password" \
        rpardini/docker-registry-proxy:0.6.2
 ```
@@ -179,7 +179,7 @@ docker run --rm --name docker_registry_proxy -it \
        -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
-       -e REGISTRIES="k8s.gcr.io gcr.io quay.io your.own.registry another.public.registry" \
+       -e REGISTRIES="registry.k8s.io gcr.io quay.io your.own.registry another.public.registry" \
        -e AUTH_REGISTRIES_DELIMITER=";;;" \
        -e AUTH_REGISTRY_DELIMITER=":::" \
        -e AUTH_REGISTRIES="gcr.io:::_json_key:::$(cat servicekey.json);;;auth.docker.io:::dockerhub_username:::dockerhub_password" \
@@ -316,7 +316,7 @@ systemctl restart docker.service
 
 Clear `dockerd` of everything not currently running: `docker system prune -a -f` *beware*
 
-Then do, for example, `docker pull k8s.gcr.io/kube-proxy-amd64:v1.10.4` and watch the logs on the caching proxy, it should list a lot of MISSes.
+Then do, for example, `docker pull registry.k8s.io/kube-proxy-amd64:v1.10.4` and watch the logs on the caching proxy, it should list a lot of MISSes.
 
 Then, clean again, and pull again. You should see HITs! Success.
 
@@ -354,7 +354,7 @@ docker run --rm --name docker_registry_proxy -it
 ### Why not use Docker's own registry, which has a mirror feature?
 
 Yes, Docker offers [Registry as a pull through cache](https://docs.docker.com/registry/recipes/mirror/), *unfortunately* 
-it only covers the DockerHub case. It won't cache images from `quay.io`, `k8s.gcr.io`, `gcr.io`, or any such, including any private registries.
+it only covers the DockerHub case. It won't cache images from `quay.io`, `registry.k8s.io`, `gcr.io`, or any such, including any private registries.
 
 That means that your shiny new Kubernetes cluster is now a bandwidth hog, since every image will be pulled from the 
 Internet on every Node it runs on, with no reuse.

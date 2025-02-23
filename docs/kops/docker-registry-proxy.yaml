@@ -25,7 +25,7 @@ spec:
             - name: ENABLE_MANIFEST_CACHE
               value: "true"
             - name: REGISTRIES
-              value: "k8s.gcr.io gcr.io quay.io us.gcr.io"
+              value: "registry.k8s.io gcr.io quay.io us.gcr.io"
           ports:
             - name: http
               containerPort: 3128
