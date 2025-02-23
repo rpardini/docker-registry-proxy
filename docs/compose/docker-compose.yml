@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   docker_registry_proxy:
-    image: rpardini/docker-registry-proxy:0.6.1 # Check and make sure this is the last released version
+    image: rpardini/docker-registry-proxy:0.6.5 # Check and make sure this is the last released version
     env_file: # This contains REGISTRIES and AUTH_REGISTRIES
       - ./secrets.env
     environment:
