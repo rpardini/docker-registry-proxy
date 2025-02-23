@@ -13,10 +13,11 @@ jobs:
       fail-fast: false # let other jobs try to complete if one fails
       matrix:
         include:
-          - { id: "default-amd64", extraDockerOpts: "", runner: "ubuntu-22.04" }
-          - { id: "default-arm64", extraDockerOpts: "",  runner: "ubuntu-22.04-arm" }
-          - { id: "manifest-cache", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=true", runner: "ubuntu-22.04" }
-          - { id: "disable-ipv6", extraDockerOpts: "-e DISABLE_IPV6=true", runner: "ubuntu-22.04" }
+          - { id: "default-amd64", extraDockerOpts: "", extraImageToPull: "", runner: "ubuntu-22.04" }
+          - { id: "default-arm64", extraDockerOpts: "", extraImageToPull: "",   runner: "ubuntu-22.04-arm" }
+          - { id: "manifest-cache", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=true", extraImageToPull: "", runner: "ubuntu-22.04" }
+          - { id: "disable-ipv6", extraDockerOpts: "-e DISABLE_IPV6=true", extraImageToPull: "", runner: "ubuntu-22.04" }
+          - { id: "manifest-noipv6-arm64-ghcr", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=true -e DISABLE_IPV6=true", extraImageToPull: "ghcr.io/rpardini/ansi-hastebin:0.0.8-node20", runner: "ubuntu-22.04-arm" }
 
     runs-on: "${{ matrix.runner }}"
     name: "${{ matrix.id }} (${{ matrix.extraDockerOpts }})"
@@ -146,13 +147,17 @@ jobs:
       - name: Initial prune of all unused images from docker cache (slow)
         timeout-minutes: 2
         run: |
-          docker image prune --all --force
+          time docker image prune --all --force
+          time sync
 
       - name: First round of pulls
         timeout-minutes: 2
         run: |
-          docker pull alpine:3.20
-          docker pull registry.k8s.io/pause:3.6
+          time docker pull alpine:3.20
+          time docker pull registry.k8s.io/pause:3.6
+          if [[ "a${{ matrix.extraImageToPull }}" != "a" ]]; then
+            time docker pull ${{ matrix.extraImageToPull }}
+          fi
 
       - name: Get the cold cache logs for the container into a file
         run: |
@@ -173,7 +178,8 @@ jobs:
       - name: prune all unused images from docker cache again
         timeout-minutes: 1
         run: |
-          docker image prune --all --force
+          time docker image prune --all --force
+          time sync
 
       - name: sleep 2s to allow cache to stale a bit
         run: |
@@ -182,12 +188,19 @@ jobs:
       - name: Second round of pulls
         timeout-minutes: 2
         run: |
-          docker pull alpine:3.20
-          docker pull registry.k8s.io/pause:3.6
+          time docker pull alpine:3.20
+          time docker pull registry.k8s.io/pause:3.6
+          if [[ "a${{ matrix.extraImageToPull }}" != "a" ]]; then
+            time docker pull ${{ matrix.extraImageToPull }}
+          fi
 
       - name: Get the warm cache docker logs for the container into a file
         run: |
-          docker logs docker_registry_proxy &> warm_cache.txt
+          docker logs docker_registry_proxy &> warm_cache_all.txt
+          # Get a count of lines in cold_cache.txt
+          declare -i COLD_CACHE_LINES=$(wc -l < cold_cache.txt)
+          # Skip the first COLD_CACHE_LINES lines of warm_cache_all.txt and output warm_cache.txt
+          tail -n +$((COLD_CACHE_LINES+1)) warm_cache_all.txt > warm_cache.txt
 
       - name: "LOG: warm_cache.txt"
         run: |
