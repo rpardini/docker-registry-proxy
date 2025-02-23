@@ -7,9 +7,23 @@ on:
       - master
 
 jobs:
-  sanity-check:
-    runs-on: ubuntu-latest
+
+  sanity-check-matrix:
+    strategy:
+      fail-fast: false # let other jobs try to complete if one fails
+      matrix:
+        include:
+          - { id: "default-amd64", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=false", runner: "ubuntu-22.04" }
+          - { id: "default-arm64", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=false",  runner: "ubuntu-22.04-arm" }
+
+
+    runs-on: "${{ matrix.runner }}"
+    name: "${{ matrix.id }} (${{ matrix.extraDockerOpts }})"
     steps:
+
+      - name: Install pipetty and ccze
+        run: |
+          sudo apt-get install -y colorized-logs ccze
 
       - name: Get machine's first IPv4 address for eth0
         id: ip
@@ -23,12 +37,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # We use buildx instead of regular build so we can take advantage of Docker layer cache via Github Actions' cache
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build amd64 release image locally to Docker
+      - name: Build image locally to Docker
         uses: docker/build-push-action@v6
         with:
           build-args: |
@@ -37,15 +50,14 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64
           tags: sanity-check/docker-registry-proxy:latest
           push: false
           load: true
 
       - name: Start foreground instance for first-contact sanity checking
         run: |
-          timeout --signal=9 --verbose 10 docker run --name docker_registry_proxy_fg \
-            -e ENABLE_MANIFEST_CACHE=false \
+          timeout --signal=9 --verbose 10 docker run \
+            --name docker_registry_proxy_fg ${{ matrix.extraDockerOpts }} \
             sanity-check/docker-registry-proxy:latest || true
           sleep 3
           docker stop docker_registry_proxy_fg || true
@@ -54,7 +66,7 @@ jobs:
       - name: Start proxy instance in docker (ENABLE_MANIFEST_CACHE=false)
         run: |
           docker run -d --rm --name docker_registry_proxy \
-            -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=false \
+            -p 0.0.0.0:3128:3128 ${{ matrix.extraDockerOpts }} \
             -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
             -v $(pwd)/docker_mirror_certs:/ca \
             sanity-check/docker-registry-proxy:latest
@@ -65,11 +77,8 @@ jobs:
           sleep 10
           docker logs docker_registry_proxy > initial_logs.txt
 
-      - name: Upload artifact initial_logs
-        uses: actions/upload-artifact@v4
-        with:
-          name: initial_logs
-          path: initial_logs.txt
+      - name: "LOG: initial_logs.txt"
+        run: pipetty ccze -A < initial_logs.txt
 
       - name: Wait for container to be up
         timeout-minutes: 1
@@ -113,10 +122,10 @@ jobs:
         run: |
           sudo systemctl restart docker.service
 
-      - name: Start proxy instance in docker again (ENABLE_MANIFEST_CACHE=true)
+      - name: Start proxy instance in docker again
         run: |
           docker run -d --rm --name docker_registry_proxy \
-            -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
+            -p 0.0.0.0:3128:3128 ${{ matrix.extraDockerOpts }} \
             -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
             -v $(pwd)/docker_mirror_certs:/ca \
             sanity-check/docker-registry-proxy:latest
@@ -148,11 +157,8 @@ jobs:
         run: |
           docker logs docker_registry_proxy > cold_cache.txt
 
-      - name: Upload artifact cold_cache
-        uses: actions/upload-artifact@v4
-        with:
-          name: cold_cache
-          path: cold_cache.txt
+      - name: "LOG: cold_cache.txt"
+        run: pipetty ccze -A < cold_cache.txt
 
       - name: prune all unused images from docker cache again
         timeout-minutes: 1
@@ -173,9 +179,6 @@ jobs:
         run: |
           docker logs docker_registry_proxy > warm_cache.txt
 
-      - name: Upload artifact warm_cache
-        uses: actions/upload-artifact@v4
-        with:
-          name: warm_cache
-          path: warm_cache.txt
+      - name: "LOG: warm_cache.txt"
+        run: pipetty ccze -A < warm_cache.txt
 
