@@ -3,6 +3,10 @@ name: master-latest
 on:
   push:
     branches: [ master ]
+    # ignore pushes to .github/workflows/tags.yaml and .github/workflows/test.yaml
+    paths-ignore:
+      - ".github/workflows/tags.yaml"
+      - ".github/workflows/test.yaml"
 
 jobs:
   multiarch-to-dockerhub-latest:
