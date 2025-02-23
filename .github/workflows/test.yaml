@@ -76,7 +76,7 @@ jobs:
         run: |
           echo "Sleeping 10s..."
           sleep 10
-          docker logs docker_registry_proxy > initial_logs.txt
+          docker logs docker_registry_proxy &> initial_logs.txt
 
       - name: "LOG: initial_logs.txt"
         run: pipetty ccze -A < initial_logs.txt
@@ -156,7 +156,7 @@ jobs:
 
       - name: Get the cold cache logs for the container into a file
         run: |
-          docker logs docker_registry_proxy > cold_cache.txt
+          docker logs docker_registry_proxy &> cold_cache.txt
 
       - name: "LOG: cold_cache.txt"
         run: |
@@ -183,7 +183,7 @@ jobs:
 
       - name: Get the warm cache docker logs for the container into a file
         run: |
-          docker logs docker_registry_proxy > warm_cache.txt
+          docker logs docker_registry_proxy &> warm_cache.txt
 
       - name: "LOG: warm_cache.txt"
         run: |
