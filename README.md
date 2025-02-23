@@ -87,10 +87,7 @@ for this to work it requires inserting a root CA certificate into system trusted
   - `hostname`s listed here should be listed in the REGISTRIES environment as well, so they can be intercepted.
 - Env `AUTH_REGISTRIES_DELIMITER` to change the separator between authentication info. By default, a space: "` `". If you use keys that contain spaces (as with Google Cloud Registry), you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=";;;"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:user1:pass1;;;registry2.com:user2:pass2`.
 - Env `AUTH_REGISTRY_DELIMITER` to change the separator between authentication info *parts*. By default, a colon: "`:`". If you use keys that contain single colons, you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=":::"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:::user1:::pass1 registry2.com:::user2:::pass2`.
-- Env `PROXY_REQUEST_BUFFERING`: If push is allowed, buffering requests can cause issues on slow upstreams.
-If you have trouble pushing, set this to `false` first, then fix remainig timeouts.
-Default is `true` to not change default behavior.
-ENV PROXY_REQUEST_BUFFERING="true"
+- Env `PROXY_REQUEST_BUFFERING`: If push is allowed, buffering requests can cause issues on slow upstreams.  If you have trouble pushing, set this to `false` first, then fix remaining timeouts. Default is `true` to not change default behavior.
 - Timeouts ENVS - all of them can pe specified to control different timeouts, and if not set, the defaults will be the ones from `Dockerfile`. The directives will be added into `http` block.:
   - SEND_TIMEOUT : see [send_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#send_timeout)
   - CLIENT_BODY_TIMEOUT : see [client_body_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_body_timeout)
@@ -102,7 +99,7 @@ ENV PROXY_REQUEST_BUFFERING="true"
   - PROXY_CONNECT_READ_TIMEOUT : see [proxy_connect_read_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_read_timeout)
   - PROXY_CONNECT_CONNECT_TIMEOUT : see [proxy_connect_connect_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_connect_timeout)
   - PROXY_CONNECT_SEND_TIMEOUT : see [proxy_connect_send_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_send_timeout)
-- Env `DISABLE_IPV6`: If set to `true`, prevents nginx from getting IPv6 addresses from the resolver without needing a [custom resolver config](#custom_nginx_resolvers_configuration)
+- Env `DISABLE_IPV6`: If set to `true`, prevents nginx from getting IPv6 addresses from the resolver, without needing a [custom resolver config](#custom_nginx_resolvers_configuration)
 
 
 ### Simple (no auth, all cache)
