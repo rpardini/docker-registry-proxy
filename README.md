@@ -93,7 +93,7 @@ for this to work it requires inserting a root CA certificate into system trusted
 - Env `AUTH_REGISTRIES`: space separated list of `hostname:username:password` authentication info.
   - `hostname`s listed here should be listed in the REGISTRIES environment as well, so they can be intercepted.
 - Env `AUTH_REGISTRIES_DELIMITER` to change the separator between authentication info. By default, a space: "` `". If you use keys that contain spaces (as with Google Cloud Registry), you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=";;;"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:user1:pass1;;;registry2.com:user2:pass2`.
-- Env `AUTH_REGISTRY_DELIMITER` to change the separator between authentication info *parts*. By default, a colon: "`:`". If you use keys that contain single colons, you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=":::"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:::user1:::pass1 registry2.com:::user2:::pass2`.
+- Env `AUTH_REGISTRY_DELIMITER` to change the separator between authentication info *parts*. By default, a colon: "`:`". If you use keys that contain single colons, you should update this variable, e.g. setting it to `AUTH_REGISTRY_DELIMITER=":::"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:::user1:::pass1 registry2.com:::user2:::pass2`.
 - Env `PROXY_REQUEST_BUFFERING`: If push is allowed, buffering requests can cause issues on slow upstreams.  If you have trouble pushing, set this to `false` first, then fix remaining timeouts. Default is `true` to not change default behavior.
 - Timeouts ENVS - all of them can pe specified to control different timeouts, and if not set, the defaults will be the ones from `Dockerfile`. The directives will be added into `http` block.:
   - SEND_TIMEOUT : see [send_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#send_timeout)
@@ -182,6 +182,31 @@ docker run --rm --name docker_registry_proxy -it \
        -e AUTH_REGISTRIES_DELIMITER=";;;" \
        -e AUTH_REGISTRY_DELIMITER=":::" \
        -e AUTH_REGISTRIES="gcr.io:::_json_key:::$(cat servicekey.json);;;auth.docker.io:::dockerhub_username:::dockerhub_password" \
+       rpardini/docker-registry-proxy:0.6.5
+```
+
+### Google Artifact Registry (GAR) auth
+
+For Google Artifact Registry (GAR), username should be `_json_key` and the password should be the contents of the service account JSON. 
+Check out [GAR docs](https://cloud.google.com/artifact-registry/docs/docker/authentication#json-key). 
+
+The service account key is in JSON format, it contains spaces ("` `") and colons ("`:`"). 
+
+To be able to use GAR you should set `AUTH_REGISTRIES_DELIMITER` to something different than space (e.g. `AUTH_REGISTRIES_DELIMITER=";;;"`) and `AUTH_REGISTRY_DELIMITER` to something different than a single colon (e.g. `AUTH_REGISTRY_DELIMITER=":::"`).
+
+GAR repositories have different domain names depending on the region in which they are hosted. Separate `REGISTRIES` and `AUTH_REGISTRIES` entries must be defined for each region's domain name. `us-east1-docker.pkg.dev` and `us-central1-docker.pkg.dev` are used in the example below.
+
+Example with GAR using credentials from a service account from a key file `servicekey.json`:
+
+```bash
+docker run --rm --name docker_registry_proxy -it \
+       -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
+       -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
+       -v $(pwd)/docker_mirror_certs:/ca \
+       -e REGISTRIES="us-east1-docker.pkg.dev us-central1-docker.pkg.dev" \
+       -e AUTH_REGISTRIES_DELIMITER=";;;" \
+       -e AUTH_REGISTRY_DELIMITER=":::" \
+       -e AUTH_REGISTRIES="us-east1-docker.pkg.dev:::_json_key:::$(cat servicekey.json);;;us-central1-docker.pkg.dev:::_json_key:::$(cat servicekey.json);;;auth.docker.io:::dockerhub_username:::dockerhub_password" \
        rpardini/docker-registry-proxy:0.6.5
 ```
 
