@@ -22,6 +22,7 @@ jobs:
           - { id: "manifest-cache", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=true", extraImageToPull: "", runner: "ubuntu-22.04" }
           - { id: "disable-ipv6", extraDockerOpts: "-e DISABLE_IPV6=true", extraImageToPull: "", runner: "ubuntu-22.04" }
           - { id: "manifest-noipv6-arm64-ghcr", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=true -e DISABLE_IPV6=true", extraImageToPull: "ghcr.io/rpardini/ansi-hastebin:0.0.8-node20", runner: "ubuntu-22.04-arm" }
+          - { id: "manifest-noipv6-arm64-gcr", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=true -e DISABLE_IPV6=true", extraImageToPull: "mirror.gcr.io/busybox:latest", runner: "ubuntu-22.04-arm" }
 
     runs-on: "${{ matrix.runner }}"
     name: "${{ matrix.id }} (${{ matrix.extraDockerOpts }})"
