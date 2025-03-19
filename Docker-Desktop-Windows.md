@@ -8,7 +8,7 @@
    1. Chose to _Install certificate..._, then click _Next_
    1. Chose _Current user_, then click _Next_
    1. Select option _Place all certificates in the following store_, click _browse_, and select _Trusted Root Certification Authorities_
-   1. Proceed with Ok and confirm to install the certificate
+   1. Proceed with Ok and confirm to install the certificate. (verify if certificate is installed via _control panel --> Manage computer certificates --> Certificates Local computer --> Trusted Root Certification Authorities --> Certificates_ . If you dont find your certificate here, manually install certificate by importing it by _Action --> All tasks --> Import_). 
 
    If you are not using the WSL2 backend for Docker, then restart Docker Desktop and skip the next step.
 
@@ -64,3 +64,4 @@
    You can check the logs of the proxy to confirm that it was used.
 
    If pulling does not work and complains about not trusting the certificate then Docker and/or the WSL distribution might need a restart. You might try restarting Docker, or you can restart Windows too to force WSL to restart.
+
