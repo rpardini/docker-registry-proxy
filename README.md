@@ -3,9 +3,10 @@
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/rpardini/docker-registry-proxy/tags.yaml?branch=master&label=last%20tagged%20release)
 ![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/rpardini/docker-registry-proxy?sort=semver)
 ![Docker Pulls](https://img.shields.io/docker/pulls/rpardini/docker-registry-proxy)
+
 ## TL,DR
 
-A caching proxy for Docker; allows centralised management of (multiple) registries and their authentication; caches images from *any* registry.
+A caching proxy for Docker; allows centralised management of (multiple) registries and their authentication; caches images from _any_ registry.
 Caches the potentially huge blob/layer requests (for bandwidth/time savings), and optionally caches manifest requests ("pulls") to avoid rate-limiting.
 
 ### `0.6.5`: Updated late February 2025 for the "2nd Docker Apocalypse"
@@ -18,17 +19,17 @@ Many thanks to all the contributors over the years; I've no intention of abandon
 
 ### NEW: avoiding DockerHub Pull Rate Limits with Caching
 
-Starting November 2nd, 2020, DockerHub will 
-[supposedly](https://www.docker.com/blog/docker-hub-image-retention-policy-delayed-and-subscription-updates/) 
+Starting November 2nd, 2020, DockerHub will
+[supposedly](https://www.docker.com/blog/docker-hub-image-retention-policy-delayed-and-subscription-updates/)
 [start](https://www.docker.com/blog/scaling-docker-to-serve-millions-more-developers-network-egress/)
-[rate-limiting pulls](https://docs.docker.com/docker-hub/download-rate-limit/), 
-also known as the _Docker Apocalypse_. 
+[rate-limiting pulls](https://docs.docker.com/docker-hub/download-rate-limit/),
+also known as the _Docker Apocalypse_.
 The main symptom is `Error response from daemon: toomanyrequests: Too Many Requests. Please see https://docs.docker.com/docker-hub/download-rate-limit/` during pulls.
 Many unknowing Kubernetes clusters will hit the limit, and struggle to configure `imagePullSecrets` and `imagePullPolicy`.
 
-This proxy can be configured with the env var `ENABLE_MANIFEST_CACHE=true` which provides 
+This proxy can be configured with the env var `ENABLE_MANIFEST_CACHE=true` which provides
 configurable caching of the manifest requests that DockerHub throttles. You can then fine-tune other parameters to your needs.
-Together with the possibility to centrally inject authentication (since 0.3x), this is probably one of the best ways to bring relief to your distressed cluster, while at the same time saving lots of bandwidth and time. 
+Together with the possibility to centrally inject authentication (since 0.3x), this is probably one of the best ways to bring relief to your distressed cluster, while at the same time saving lots of bandwidth and time.
 
 Note: enabling manifest caching, in its default config, effectively makes some tags **immutable**. Use with care. The configuration ENVs are explained in the [Dockerfile](./Dockerfile), relevant parts included below.
 
@@ -56,16 +57,15 @@ ENV MANIFEST_CACHE_SECONDARY_TIME="60d"
 ENV MANIFEST_CACHE_DEFAULT_TIME="1h"
 ```
 
-
 ## What?
 
-Essentially, it's a [man in the middle](https://en.wikipedia.org/wiki/Man-in-the-middle_attack): an intercepting proxy based on `nginx`, to which all docker traffic is directed using the `HTTPS_PROXY` mechanism and injected CA root certificates. 
+Essentially, it's a [man in the middle](https://en.wikipedia.org/wiki/Man-in-the-middle_attack): an intercepting proxy based on `nginx`, to which all docker traffic is directed using the `HTTPS_PROXY` mechanism and injected CA root certificates.
 
-The main feature is Docker layer/image caching, including layers served from S3, Google Storage, etc. 
+The main feature is Docker layer/image caching, including layers served from S3, Google Storage, etc.
 
 As a bonus it allows for centralized management of Docker registry credentials, which can in itself be the main feature, eg in Kubernetes environments.
 
-You configure the Docker clients (_err... Kubernetes Nodes?_) once, and then all configuration is done on the proxy -- 
+You configure the Docker clients (_err... Kubernetes Nodes?_) once, and then all configuration is done on the proxy --
 for this to work it requires inserting a root CA certificate into system trusted root certs.
 
 ## master/:latest is unstable/beta
@@ -88,13 +88,14 @@ for this to work it requires inserting a root CA certificate into system trusted
 - Map volume `/ca`, the proxy will store the CA certificate here across restarts. **Important** this is security sensitive.
 - Env `ALLOW_PUSH` : This bypasses the proxy when pushing, default to false - if kept to false, pushing will not work. For more info see this [commit](https://github.com/rpardini/docker-registry-proxy/commit/536f0fc8a078d03755f1ae8edc19a86fc4b37fcf).
 - Env `CACHE_MAX_SIZE` (default `32g`): set the max size to be used for caching local Docker image layers. Use [Nginx sizes](http://nginx.org/en/docs/syntax.html).
+- Env `CACHE_INACTIVE` (default `60d`): set the time after which an element is removed from the cache if it has not been accessed during this time. Use [Nginx sizes](http://nginx.org/en/docs/syntax.html).
 - Env `ENABLE_MANIFEST_CACHE`, see the section on pull rate limiting.
 - Env `REGISTRIES`: space separated list of registries to cache; no need to include DockerHub, its already done internally.
 - Env `AUTH_REGISTRIES`: space separated list of `hostname:username:password` authentication info.
   - `hostname`s listed here should be listed in the REGISTRIES environment as well, so they can be intercepted.
 - Env `AUTH_REGISTRIES_DELIMITER` to change the separator between authentication info. By default, a space: "` `". If you use keys that contain spaces (as with Google Cloud Registry), you should update this variable, e.g. setting it to `AUTH_REGISTRIES_DELIMITER=";;;"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:user1:pass1;;;registry2.com:user2:pass2`.
-- Env `AUTH_REGISTRY_DELIMITER` to change the separator between authentication info *parts*. By default, a colon: "`:`". If you use keys that contain single colons, you should update this variable, e.g. setting it to `AUTH_REGISTRY_DELIMITER=":::"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:::user1:::pass1 registry2.com:::user2:::pass2`.
-- Env `PROXY_REQUEST_BUFFERING`: If push is allowed, buffering requests can cause issues on slow upstreams.  If you have trouble pushing, set this to `false` first, then fix remaining timeouts. Default is `true` to not change default behavior.
+- Env `AUTH_REGISTRY_DELIMITER` to change the separator between authentication info _parts_. By default, a colon: "`:`". If you use keys that contain single colons, you should update this variable, e.g. setting it to `AUTH_REGISTRY_DELIMITER=":::"`. In that case, `AUTH_REGISTRIES` could contain something like `registry1.com:::user1:::pass1 registry2.com:::user2:::pass2`.
+- Env `PROXY_REQUEST_BUFFERING`: If push is allowed, buffering requests can cause issues on slow upstreams. If you have trouble pushing, set this to `false` first, then fix remaining timeouts. Default is `true` to not change default behavior.
 - Timeouts ENVS - all of them can pe specified to control different timeouts, and if not set, the defaults will be the ones from `Dockerfile`. The directives will be added into `http` block.:
   - SEND_TIMEOUT : see [send_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#send_timeout)
   - CLIENT_BODY_TIMEOUT : see [client_body_timeout](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_body_timeout)
@@ -108,8 +109,8 @@ for this to work it requires inserting a root CA certificate into system trusted
   - PROXY_CONNECT_SEND_TIMEOUT : see [proxy_connect_send_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_send_timeout)
 - Env `DISABLE_IPV6`: If set to `true`, prevents nginx from getting IPv6 addresses from the resolver, without needing a [custom resolver config](#custom_nginx_resolvers_configuration)
 
-
 ### Simple (no auth, all cache)
+
 ```bash
 docker run --rm --name docker_registry_proxy -it \
        -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
@@ -121,6 +122,7 @@ docker run --rm --name docker_registry_proxy -it \
 ### DockerHub auth
 
 For Docker Hub authentication:
+
 - `hostname` should be `auth.docker.io`
 - `username` should NOT be an email, use the regular username
 
@@ -164,10 +166,10 @@ docker run  --rm --name docker_registry_proxy -it \
 
 ### Google Container Registry (GCR) auth
 
-For Google Container Registry (GCR), username should be `_json_key` and the password should be the contents of the service account JSON. 
-Check out [GCR docs](https://cloud.google.com/container-registry/docs/advanced-authentication#json_key_file). 
+For Google Container Registry (GCR), username should be `_json_key` and the password should be the contents of the service account JSON.
+Check out [GCR docs](https://cloud.google.com/container-registry/docs/advanced-authentication#json_key_file).
 
-The service account key is in JSON format, it contains spaces ("` `") and colons ("`:`"). 
+The service account key is in JSON format, it contains spaces ("` `") and colons ("`:`").
 
 To be able to use GCR you should set `AUTH_REGISTRIES_DELIMITER` to something different than space (e.g. `AUTH_REGISTRIES_DELIMITER=";;;"`) and `AUTH_REGISTRY_DELIMITER` to something different than a single colon (e.g. `AUTH_REGISTRY_DELIMITER=":::"`).
 
@@ -187,10 +189,10 @@ docker run --rm --name docker_registry_proxy -it \
 
 ### Google Artifact Registry (GAR) auth
 
-For Google Artifact Registry (GAR), username should be `_json_key` and the password should be the contents of the service account JSON. 
-Check out [GAR docs](https://cloud.google.com/artifact-registry/docs/docker/authentication#json-key). 
+For Google Artifact Registry (GAR), username should be `_json_key` and the password should be the contents of the service account JSON.
+Check out [GAR docs](https://cloud.google.com/artifact-registry/docs/docker/authentication#json-key).
 
-The service account key is in JSON format, it contains spaces ("` `") and colons ("`:`"). 
+The service account key is in JSON format, it contains spaces ("` `") and colons ("`:`").
 
 To be able to use GAR you should set `AUTH_REGISTRIES_DELIMITER` to something different than space (e.g. `AUTH_REGISTRIES_DELIMITER=";;;"`) and `AUTH_REGISTRY_DELIMITER` to something different than a single colon (e.g. `AUTH_REGISTRY_DELIMITER=":::"`).
 
@@ -338,7 +340,7 @@ systemctl restart docker.service
 
 ## Testing
 
-Clear `dockerd` of everything not currently running: `docker system prune -a -f` *beware*
+Clear `dockerd` of everything not currently running: `docker system prune -a -f` _beware_
 
 Then do, for example, `docker pull registry.k8s.io/kube-proxy-amd64:v1.10.4` and watch the logs on the caching proxy, it should list a lot of MISSes.
 
@@ -354,7 +356,7 @@ Since `0.4` there is a separate `-debug` version of the image, which includes `n
 This allows very in-depth debugging. Use sparingly, and definitely not in production.
 
 ```bash
-docker run --rm --name docker_registry_proxy -it 
+docker run --rm --name docker_registry_proxy -it
        -e DEBUG_NGINX=true -e DEBUG=true -e DEBUG_HUB=true -p 0.0.0.0:8081:8081 -p 0.0.0.0:8082:8082 \
        -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
@@ -368,7 +370,7 @@ docker run --rm --name docker_registry_proxy -it
 
 ## Gotchas
 
-- If you authenticate to a private registry and pull through the proxy, those images will be served to any client that can reach the proxy, even without authentication. *beware*
+- If you authenticate to a private registry and pull through the proxy, those images will be served to any client that can reach the proxy, even without authentication. _beware_
 - Repeat, **this will make your private images very public if you're not careful**.
 - ~~**Currently you cannot push images while using the proxy** which is a shame. PRs welcome.~~ **SEE `ALLOW_PUSH` ENV FROM USAGE SECTION.**
 - Setting this on Linux is relatively easy.
@@ -377,15 +379,15 @@ docker run --rm --name docker_registry_proxy -it
 
 ### Why not use Docker's own registry, which has a mirror feature?
 
-Yes, Docker offers [Registry as a pull through cache](https://docs.docker.com/registry/recipes/mirror/), *unfortunately* 
+Yes, Docker offers [Registry as a pull through cache](https://docs.docker.com/registry/recipes/mirror/), _unfortunately_
 it only covers the DockerHub case. It won't cache images from `quay.io`, `registry.k8s.io`, `gcr.io`, or any such, including any private registries.
 
-That means that your shiny new Kubernetes cluster is now a bandwidth hog, since every image will be pulled from the 
+That means that your shiny new Kubernetes cluster is now a bandwidth hog, since every image will be pulled from the
 Internet on every Node it runs on, with no reuse.
 
-This is due to the way the Docker "client" implements `--registry-mirror`, it only ever contacts mirrors for images 
+This is due to the way the Docker "client" implements `--registry-mirror`, it only ever contacts mirrors for images
 with no repository reference (eg, from DockerHub).
-When a repository is specified `dockerd` goes directly there, via HTTPS (and also via HTTP if included in a 
+When a repository is specified `dockerd` goes directly there, via HTTPS (and also via HTTP if included in a
 `--insecure-registry` list), thus completely ignoring the configured mirror.
 
 ### Docker itself should provide this.
@@ -395,7 +397,7 @@ Yeah. Docker Inc should do it. So should NPM, Inc. Wonder why they don't. 😼
 ### TODO:
 
 - [x] Basic Docker-for-Mac set-up instructions
-- [x] Basic Docker-for-Windows set-up instructions. 
+- [x] Basic Docker-for-Windows set-up instructions.
 - [ ] Test and make auth work with quay.io, unfortunately I don't have access to it (_hint, hint, quay_)
 - [x] Hide the mitmproxy building code under a Docker build ARG.
 - [ ] "Developer Office" proxy scenario, where many developers on a fast LAN share a proxy for bandwidth and speed savings (already works for pulls, but messes up pushes, which developers tend to use a lot)
