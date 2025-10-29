@@ -63,7 +63,7 @@ EXPOSE 8082
 
 ## Default envs.
 # A space delimited list of registries we should proxy and cache; this is in addition to the central DockerHub.
-ENV REGISTRIES="registry.k8s.io gcr.io quay.io ghcr.io"
+ENV REGISTRIES="registry.k8s.io gcr.io quay.io ghcr.io public.ecr.aws"
 # A space delimited list of registry:user:password to inject authentication for
 ENV AUTH_REGISTRIES="some.authenticated.registry:oneuser:onepassword another.registry:user:password"
 # Should we verify upstream's certificates? Default to true.
