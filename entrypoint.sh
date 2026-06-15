@@ -281,7 +281,9 @@ if [[ "a${VERIFY_SSL}" == "atrue" ]]; then
     # We'll accept any cert signed by a CA trusted by Mozilla (ca-certificates-bundle in alpine)
     proxy_ssl_verify on;
     proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
-    proxy_ssl_verify_depth 2;
+    # docker.io has changed their certificate chain to include another intermediate certificate,
+    # original value of 2 is not enough, bump up depth to 3.
+    proxy_ssl_verify_depth 3;
 EOD
     echo "Upstream SSL certificate verification enabled."
 else
