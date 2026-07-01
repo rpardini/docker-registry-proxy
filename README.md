@@ -232,13 +232,15 @@ docker run --rm --name docker_registry_proxy -it \
 Now deploy your Kind cluster and then automatically configure the nodes with the following script :
 
 ```bash
-#!/bin/sh
+#!/bin/bash
+set -euo pipefail
 KIND_NAME=${1-kind}
 SETUP_URL=http://docker-registry-proxy:3128/setup/systemd
 pids=""
 for NODE in $(kind get nodes --name "$KIND_NAME"); do
-  docker exec "$NODE" sh -c "\
-      curl $SETUP_URL \
+  docker exec "$NODE" bash -c "\
+      set -euo pipefail && \
+      curl --fail $SETUP_URL \
       | sed s/docker\.service/containerd\.service/g \
       | sed '/Environment/ s/$/ \"NO_PROXY=127.0.0.0\/8,10.0.0.0\/8,172.16.0.0\/12,192.168.0.0\/16\"/' \
       | bash" & pids="$pids $!" # Configure every node in background
