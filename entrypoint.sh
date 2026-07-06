@@ -103,10 +103,11 @@ echo "error_log  /var/log/nginx/error.log warn;" > /etc/nginx/error.log.debug.wa
 
 # Set Docker Registry cache size, by default, 32 GB ('32g')
 CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
+CACHE_INACTIVE=${CACHE_INACTIVE:-60d}
 
 # The cache directory. This can get huge. Better to use a Docker volume pointing here!
 # Set to 32gb which should be enough
-echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE inactive=60d keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/cache_max_size.conf
+echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE inactive=$CACHE_INACTIVE keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/cache_max_size.conf
 
 # Manifest caching configuration. We generate config based on the environment vars.
 echo -n "" >/etc/nginx/nginx.manifest.caching.config.conf
@@ -317,7 +318,9 @@ if [[ "a${VERIFY_SSL}" == "atrue" ]]; then
     # We'll accept any cert signed by a CA trusted by Mozilla (ca-certificates-bundle in alpine)
     proxy_ssl_verify on;
     proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
-    proxy_ssl_verify_depth 2;
+    # docker.io has changed their certificate chain to include another intermediate certificate,
+    # original value of 2 is not enough, bump up depth to 3.
+    proxy_ssl_verify_depth 3;
 EOD
     echo "Upstream SSL certificate verification enabled."
 else

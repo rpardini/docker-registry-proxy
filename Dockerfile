@@ -4,7 +4,7 @@
 # We start from my nginx fork which includes the proxy-connect module from tEngine
 # Source is available at https://github.com/rpardini/nginx-proxy-connect-stable-alpine
 # This is already multi-arch!
-ARG BASE_IMAGE="docker.io/rpardini/nginx-proxy-connect-stable-alpine:nginx-1.26.3-alpine-3.21.3"
+ARG BASE_IMAGE="docker.io/rpardini/nginx-proxy-connect-stable-alpine:nginx-1.30.3-alpine-3.24.1"
 # Could be "-debug"
 ARG BASE_IMAGE_SUFFIX=""
 FROM ${BASE_IMAGE}${BASE_IMAGE_SUFFIX}
