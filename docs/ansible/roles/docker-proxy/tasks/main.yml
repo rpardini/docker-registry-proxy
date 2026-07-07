@@ -1,0 +1,30 @@
+---
+- name: Ensures docker.service.d dir exists
+  file: >
+      path=/etc/systemd/system/docker.service.d
+      recurse=yes
+      state=directory
+- name: Add environment vars pointing Docker to use the proxy
+  copy:
+    dest: /etc/systemd/system/docker.service.d/http-proxy.conf
+    content: |
+      [Service]
+      Environment="HTTP_PROXY=http://{{ docker_proxy_url }}:3128/"
+      Environment="HTTPS_PROXY=http://{{ docker_proxy_url }}:3128/"
+
+- name: Include ubuntu tasks
+  include_tasks: ubuntu.yml
+  when: ansible_os_family == "Debian"
+
+- name: Include centos tasks
+  include_tasks: centos.yml
+  when: ansible_os_family == "RedHat"
+    
+- name: Just force systemd to reread configs (2.4 and above)
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Reload service docker, in all cases
+  ansible.builtin.systemd:
+    name: docker.service
+    state: reloaded
