@@ -17,12 +17,12 @@ jobs:
       fail-fast: false # let other jobs try to complete if one fails
       matrix:
         include:
-          - { id: "default-amd64", extraDockerOpts: "", extraImageToPull: "", runner: "ubuntu-22.04" }
-          - { id: "default-arm64", extraDockerOpts: "", extraImageToPull: "",   runner: "ubuntu-22.04-arm" }
-          - { id: "manifest-cache", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=true", extraImageToPull: "", runner: "ubuntu-22.04" }
-          - { id: "disable-ipv6", extraDockerOpts: "-e DISABLE_IPV6=true", extraImageToPull: "", runner: "ubuntu-22.04" }
-          - { id: "manifest-noipv6-arm64-ghcr", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=true -e DISABLE_IPV6=true", extraImageToPull: "ghcr.io/rpardini/ansi-hastebin:0.0.8-node20", runner: "ubuntu-22.04-arm" }
-          - { id: "manifest-noipv6-arm64-gcr", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=true -e DISABLE_IPV6=true", extraImageToPull: "mirror.gcr.io/busybox:latest", runner: "ubuntu-22.04-arm" }
+          - { id: "default-amd64", extraDockerOpts: "", extraImageToPull: "", runner: "ubuntu-24.04" }
+          - { id: "default-arm64", extraDockerOpts: "", extraImageToPull: "",   runner: "ubuntu-24.04-arm" }
+          - { id: "manifest-cache", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=true", extraImageToPull: "", runner: "ubuntu-24.04" }
+          - { id: "disable-ipv6", extraDockerOpts: "-e DISABLE_IPV6=true", extraImageToPull: "", runner: "ubuntu-24.04" }
+          - { id: "manifest-noipv6-arm64-ghcr", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=true -e DISABLE_IPV6=true", extraImageToPull: "ghcr.io/rpardini/ansi-hastebin:0.0.8-node20", runner: "ubuntu-24.04-arm" }
+          - { id: "manifest-noipv6-arm64-gcr", extraDockerOpts: "-e ENABLE_MANIFEST_CACHE=true -e DISABLE_IPV6=true", extraImageToPull: "mirror.gcr.io/busybox:latest", runner: "ubuntu-24.04-arm" }
 
     runs-on: "${{ matrix.runner }}"
     name: "${{ matrix.id }} (${{ matrix.extraDockerOpts }})"
@@ -42,14 +42,14 @@ jobs:
           echo "Ethernet IPv4 is: ${{ steps.ip.outputs.ETHER }}"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build image locally to Docker
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           build-args: |
             DEBUG_BUILD=0
@@ -158,7 +158,7 @@ jobs:
       - name: First round of pulls
         timeout-minutes: 2
         run: |
-          time docker pull alpine:3.20
+          time docker pull alpine:3.24
           time docker pull registry.k8s.io/pause:3.6
           if [[ "a${{ matrix.extraImageToPull }}" != "a" ]]; then
             time docker pull ${{ matrix.extraImageToPull }}
@@ -193,7 +193,7 @@ jobs:
       - name: Second round of pulls
         timeout-minutes: 2
         run: |
-          time docker pull alpine:3.20
+          time docker pull alpine:3.24
           time docker pull registry.k8s.io/pause:3.6
           if [[ "a${{ matrix.extraImageToPull }}" != "a" ]]; then
             time docker pull ${{ matrix.extraImageToPull }}
