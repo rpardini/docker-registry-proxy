@@ -9,6 +9,14 @@
 A caching proxy for Docker; allows centralised management of (multiple) registries and their authentication; caches images from _any_ registry.
 Caches the potentially huge blob/layer requests (for bandwidth/time savings), and optionally caches manifest requests ("pulls") to avoid rate-limiting.
 
+### `0.8.0`: Updated October 22nd, 2026
+
+- picks up updated nginx (1.30.6) & alpine (3.24.3)
+  - includes updated `ca-certificates-bundle` (`20261020`), which distrusts the compromised [eMudhra intermediate CAs](https://emudhra.we-have-a-problem.com/) (#186)
+  - previous versions trust those CAs when verifying upstream registries (`VERIFY_SSL=true`, the default), allowing MITM; please upgrade
+- new `ALLOW_OWN_AUTH` and `ALLOW_PUSH_WITH_OWN_AUTH` envs, to use own Docker credentials (eg `docker login`) instead of `AUTH_REGISTRIES`, and to allow pushing only when those are provided (thanks @gw0, #78)
+- fixed `-debug` images, which had been silently missing `mitmproxy` for a while; now uses Alpine's package (mitmproxy 11)
+
 ### `0.7.0`: Updated July 1st, 2026
 
 - picks up updated nginx & alpine to fix a gazillion CVEs
@@ -76,7 +84,7 @@ for this to work it requires inserting a root CA certificate into system trusted
 ## master/:latest is unstable/beta
 
 - `:latest` and `:latest-debug` Docker tag is unstable, built from master, and amd64-only
-- Production/stable is `0.7.0`, see [0.7.0 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.7.0) - this image is multi-arch amd64/arm64
+- Production/stable is `0.8.0`, see [0.8.0 tag on Github](https://github.com/rpardini/docker-registry-proxy/tree/0.8.0) - this image is multi-arch amd64/arm64
 
 ## Also hosted on GitHub Container Registry (ghcr.io)
 
@@ -123,7 +131,7 @@ docker run --rm --name docker_registry_proxy -it \
        -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
-       rpardini/docker-registry-proxy:0.7.0
+       rpardini/docker-registry-proxy:0.8.0
 ```
 
 ### DockerHub auth
@@ -140,7 +148,7 @@ docker run --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="registry.k8s.io gcr.io quay.io your.own.registry another.public.registry" \
        -e AUTH_REGISTRIES="auth.docker.io:dockerhub_username:dockerhub_password your.own.registry:username:password" \
-       rpardini/docker-registry-proxy:0.7.0
+       rpardini/docker-registry-proxy:0.8.0
 ```
 
 ### Simple registries auth (HTTP Basic auth)
@@ -168,7 +176,7 @@ docker run  --rm --name docker_registry_proxy -it \
        -v $(pwd)/docker_mirror_certs:/ca \
        -e REGISTRIES="reg.example.com git.example.com" \
        -e AUTH_REGISTRIES="git.example.com:USER:PASSWORD" \
-       rpardini/docker-registry-proxy:0.7.0
+       rpardini/docker-registry-proxy:0.8.0
 ```
 
 ### Google Container Registry (GCR) auth
@@ -191,7 +199,7 @@ docker run --rm --name docker_registry_proxy -it \
        -e AUTH_REGISTRIES_DELIMITER=";;;" \
        -e AUTH_REGISTRY_DELIMITER=":::" \
        -e AUTH_REGISTRIES="gcr.io:::_json_key:::$(cat servicekey.json);;;auth.docker.io:::dockerhub_username:::dockerhub_password" \
-       rpardini/docker-registry-proxy:0.7.0
+       rpardini/docker-registry-proxy:0.8.0
 ```
 
 ### Google Artifact Registry (GAR) auth
@@ -216,7 +224,7 @@ docker run --rm --name docker_registry_proxy -it \
        -e AUTH_REGISTRIES_DELIMITER=";;;" \
        -e AUTH_REGISTRY_DELIMITER=":::" \
        -e AUTH_REGISTRIES="us-east1-docker.pkg.dev:::_json_key:::$(cat servicekey.json);;;us-central1-docker.pkg.dev:::_json_key:::$(cat servicekey.json);;;auth.docker.io:::dockerhub_username:::dockerhub_password" \
-       rpardini/docker-registry-proxy:0.7.0
+       rpardini/docker-registry-proxy:0.8.0
 ```
 
 ### Kind Cluster
@@ -233,7 +241,7 @@ docker run --rm --name docker_registry_proxy -it \
        -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
-       rpardini/docker-registry-proxy:0.7.0
+       rpardini/docker-registry-proxy:0.8.0
 ```
 
 Now deploy your Kind cluster and then automatically configure the nodes with the following script :
@@ -264,7 +272,7 @@ wait $pids # Wait for all configurations to end
 docker run -d --name registry-proxy --restart=always \
 -v /tmp/registry-proxy/mirror_cache:/docker_mirror_cache \
 -v /tmp/registry-proxy/certs:/ca \
-rpardini/docker-registry-proxy:0.7.0
+rpardini/docker-registry-proxy:0.8.0
 
 export PROXY_HOST=registry-proxy
 export PROXY_PORT=3128
@@ -370,7 +378,7 @@ docker run --rm --name docker_registry_proxy -it
        -p 0.0.0.0:3128:3128 -e ENABLE_MANIFEST_CACHE=true \
        -v $(pwd)/docker_mirror_cache:/docker_mirror_cache \
        -v $(pwd)/docker_mirror_certs:/ca \
-       rpardini/docker-registry-proxy:0.7.0-debug
+       rpardini/docker-registry-proxy:0.8.0-debug
 ```
 
 - `DEBUG=true` enables the mitmweb proxy between Docker clients and the caching layer, accessible on port 8081
