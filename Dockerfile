@@ -20,15 +20,15 @@ ARG DEBUG_BUILD="1"
 ENV DO_DEBUG_BUILD="$DEBUG_BUILD"
 
 # Install mitmproxy from Alpine's community repo. Creates a large layer. Oh well.
-RUN [[ "a$DO_DEBUG_BUILD" == "a1" ]] && { echo "Debug build ENABLED." \
+RUN if [[ "a$DO_DEBUG_BUILD" == "a1" ]]; then echo "Debug build ENABLED." \
  && apk add --no-cache --update su-exec mitmproxy \
- ; } || { echo "Debug build disabled." ; }
+ ; else echo "Debug build disabled." ; fi
 
 # Required for mitmproxy
 ENV LANG=en_US.UTF-8
 
 # Check the installed mitmproxy version, if built.
-RUN [[ "a$DO_DEBUG_BUILD" == "a1" ]] && { mitmproxy --version && mitmweb --version ; } || { echo "Debug build disabled."; }
+RUN if [[ "a$DO_DEBUG_BUILD" == "a1" ]]; then mitmproxy --version && mitmweb --version ; else echo "Debug build disabled." ; fi
 
 # Create the cache directory and CA directory
 RUN mkdir -p /docker_mirror_cache /ca
